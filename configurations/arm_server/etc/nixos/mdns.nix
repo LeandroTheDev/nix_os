@@ -12,7 +12,7 @@
   networking.networkmanager = {
     enable = true;
     connectionConfig = {
-      "connection.mdns" = 2;
+      "connection.mdns" = 0;
     };
   };
 
