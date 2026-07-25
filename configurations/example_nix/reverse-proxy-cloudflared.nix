@@ -19,6 +19,10 @@
 #
 #   cloudflared tunnel route dns example-tunnel test1.mydomain.org
 #   cloudflared tunnel route dns example-tunnel test2.mydomain.org
+#
+# To restart the tunnel
+# systemctl restart cloudflared-tunnel-example-tunnel.service
+
 
 { config, pkgs, ... }:
 

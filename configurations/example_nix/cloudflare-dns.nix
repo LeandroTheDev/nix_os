@@ -27,10 +27,10 @@ let
             "name": "'"$RECORD_NAME"'",
             "ttl": 3600,
             "type": "A",
-            "comment": "Domain verification record",
+            "comment": "",
             "content": "'"$ip"'",
-            "private_routing": true,
-            "proxied": true
+            "private_routing": false,
+            "proxied": false
           }'
   '';
 
