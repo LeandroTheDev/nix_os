@@ -20,6 +20,7 @@
     enable = true;
     nssmdns4 = true;
     openFirewall = true;
+    reflector = true;
 
     publish = {
       enable = true;

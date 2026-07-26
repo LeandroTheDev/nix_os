@@ -21,6 +21,7 @@
     ipv6 = false;
     nssmdns4 = true;
     openFirewall = true;
+    reflector = true;
 
     publish = {
       enable = true;
