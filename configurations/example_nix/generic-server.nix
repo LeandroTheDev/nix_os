@@ -4,6 +4,18 @@
 { ... }:
 
 {
+  # OPTIONAL, mount a disk for the generic-server
+  # Get the UUID using: ls -la /dev/disk/by-uuid/
+  fileSystems."/home/generic-user/generic-server" = {
+    device = "/dev/disk/by-uuid/????-????-????-????-????";
+    fsType = "ext4";
+    options = [ "defaults" "nofail" ];
+  };
+
+  systemd.tmpfiles.rules = [
+    "d /home/generic-user/generic-server 0755 generic-user users -"
+  ];
+
   systemd.services.generic-server = {
     description = "Generic Server";
     wantedBy = [ "multi-user.target" ];

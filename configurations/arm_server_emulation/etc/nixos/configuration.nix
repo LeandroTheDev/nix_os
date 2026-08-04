@@ -9,6 +9,7 @@
       ./packages.nix
       ./users.nix
       ./box64.nix
+      ./box86.nix
     ];
 
   swapDevices = [{ device = "/swapfile"; size = 4096; }];
