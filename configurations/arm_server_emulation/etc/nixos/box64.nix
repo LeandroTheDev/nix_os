@@ -29,6 +29,13 @@ let
     pkgs.pkgsCross.gnu32.glibc
   ];
 
+  # 64bit x86_64 counterpart of i686Libs, for guest programs like Project Zomboid's
+  # ProjectZomboid64 launcher (needs libstdc++.so.6 / libgcc_s.so.1 in 64bit).
+  x86_64Libs = [
+    pkgs.pkgsCross.gnu64.stdenv.cc.cc.lib
+    pkgs.pkgsCross.gnu64.glibc
+  ];
+
   # aarch64 libs needed by box64's native(wrapped) libc/libbsd shims (e.g. libz.so.1).
   # NixOS has no ldconfig/FHS search path, so these must be pointed at explicitly.
   nativeLibs = [
@@ -36,8 +43,8 @@ let
   ];
 in
 {
-  environment.systemPackages = [ box64 ] ++ i686Libs ++ nativeLibs;
+  environment.systemPackages = [ box64 ] ++ i686Libs ++ x86_64Libs ++ nativeLibs;
 
-  environment.sessionVariables.BOX64_LD_LIBRARY_PATH = ".:bin/:" + lib.makeLibraryPath i686Libs;
+  environment.sessionVariables.BOX64_LD_LIBRARY_PATH = ".:bin/:" + lib.makeLibraryPath (i686Libs ++ x86_64Libs);
   environment.sessionVariables.LD_LIBRARY_PATH = lib.makeLibraryPath nativeLibs;
 }
