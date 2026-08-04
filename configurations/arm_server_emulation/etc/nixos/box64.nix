@@ -28,9 +28,16 @@ let
     pkgs.pkgsCross.gnu32.stdenv.cc.cc.lib
     pkgs.pkgsCross.gnu32.glibc
   ];
+
+  # aarch64 libs needed by box64's native(wrapped) libc/libbsd shims (e.g. libz.so.1).
+  # NixOS has no ldconfig/FHS search path, so these must be pointed at explicitly.
+  nativeLibs = [
+    pkgs.zlib
+  ];
 in
 {
-  environment.systemPackages = [ box64 ] ++ i686Libs;
+  environment.systemPackages = [ box64 ] ++ i686Libs ++ nativeLibs;
 
   environment.sessionVariables.BOX64_LD_LIBRARY_PATH = ".:bin/:" + lib.makeLibraryPath i686Libs;
+  environment.sessionVariables.LD_LIBRARY_PATH = lib.makeLibraryPath nativeLibs;
 }
