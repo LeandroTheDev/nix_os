@@ -7,6 +7,8 @@ ENV BOX64_LD_LIBRARY_PATH=".:bin/:/usr/lib/i386-linux-gnu:/lib/i386-linux-gnu"
 
 RUN dpkg --add-architecture i386 && \
     dpkg --add-architecture armhf && \
+    sed -i '/^Types:/i Architectures: arm64 armhf' /etc/apt/sources.list.d/ubuntu.sources && \
+    printf 'Types: deb\nURIs: http://archive.ubuntu.com/ubuntu\nSuites: plucky plucky-updates plucky-backports plucky-security\nComponents: main restricted universe multiverse\nArchitectures: i386\n' > /etc/apt/sources.list.d/i386.sources && \
     apt-get update && apt-get install -y \
     ca-certificates \
     curl \
