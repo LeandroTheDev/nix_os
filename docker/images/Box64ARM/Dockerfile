@@ -1,4 +1,4 @@
-FROM debian:bookworm
+FROM arm64v8/ubuntu:25.04 AS builder
 ENV DEBIAN_FRONTEND=noninteractive
 
 ENV APP_PATH="/root/app"
