@@ -47,6 +47,7 @@ RUN apt-get update && apt-get install -y \
     libsdl3-0 \
     libssl3t64 \
     squashfuse \
+    fuse3 \
     libc-bin \
     curl \
     sudo \
