@@ -23,7 +23,11 @@ RUN apt-get update && apt-get install -y \
     rm -rf /var/lib/apt/lists/*
 
 WORKDIR /home/fex
-RUN git clone --recurse-submodules https://github.com/FEX-Emu/FEX.git && \
+# Pinned to FEX-2608: includes fixes for AVX signal state save/restore across
+# context switches and for "untracked thread handling" (Clone syscall losing
+# TLS tracking of new threads) - both directly relevant to JVM workloads
+# crashing under JIT with multi-threaded SIGSEGV corruption.
+RUN git clone --recurse-submodules --branch FEX-2608 https://github.com/FEX-Emu/FEX.git && \
     cd FEX && \
     mkdir Build && cd Build && \
     CC=clang CXX=clang++ cmake -DCMAKE_INSTALL_PREFIX=/usr \
