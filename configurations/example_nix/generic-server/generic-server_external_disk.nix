@@ -4,10 +4,9 @@
 { ... }:
 
 {
-  # OPTIONAL, mount a disk for the generic-server
   # Get the UUID using: ls -la /dev/disk/by-uuid/
   fileSystems."/home/generic-user/generic-server" = {
-    device = "/dev/disk/by-uuid/????-????-????-????-????";
+    device = "/dev/disk/by-uuid/change_it_to_the_disk_uuid_using_lsblk";
     fsType = "ext4";
     options = [ "defaults" "nofail" ];
   };
@@ -16,10 +15,16 @@
     "d /home/generic-user/generic-server 0755 generic-user users -"
   ];
 
+  # Make sure the external disk is mounted, and the directory above created,
+  # before the server starts. Otherwise it may start on an empty mount point
+  # or write its data directly to the system disk. Unit name is the mount
+  # path with "/" turned into "-" and existing "-" escaped as "\x2d"
+  # (systemd-escape --path "/home/generic-user/generic-server").
   systemd.services.generic-server = {
     description = "Generic Server";
     wantedBy = [ "multi-user.target" ];
-    after = [ "network.target" ];
+    after = [ "network.target" "home-generic\\x2duser-generic\\x2dserver.mount" "systemd-tmpfiles-setup.service" ];
+    requires = [ "home-generic\\x2duser-generic\\x2dserver.mount" ];
 
     serviceConfig = {
       User = "generic-user";

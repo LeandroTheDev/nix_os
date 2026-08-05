@@ -1,50 +1,65 @@
+# Box64/Box32 binfmt emulation, adapted (non-flake) from
+# https://github.com/Yeshey/nixos-box64-binfmt
 { pkgs, lib, ... }:
 
 let
-  box64 = pkgs.box64.overrideAttrs (oldAttrs: {
-    version = "main";
-    src = pkgs.fetchFromGitHub {
-      owner = "ptitSeb";
-      repo = "box64";
-      rev = "main";
-      sha256 = "sha256-ZTKOioqvBcfLsXlEa8hJIxVxQaOPjhpJlibRQZgp0qU=";
-    };
-    enableParallelBuilding = false;
-    patches = (oldAttrs.patches or []) ++ [
-      #./box64-pthread-clockwait.patch
-      #./box64-dlinfo32-linkmap.patch
-      #./box64-debug-tolong.patch
-    ];
-    dontStrip = true;
-    cmakeFlags = (oldAttrs.cmakeFlags or []) ++ [
-      "-DRPI4ARM64=1"
-      "-DBOX32=ON"
-      "-DBOX32_BINFMT=ON"
-      "-DCMAKE_BUILD_TYPE=Release"
-    ];
-  });
+  # 32-bit x86 (i386/i686) is handled by box86.nix instead — binfmt_misc only
+  # lets one handler own a given ELF magic, so Box32 stays off here.
+  box64 = pkgs.box64;
 
-  i686Libs = [
-    pkgs.pkgsCross.gnu32.stdenv.cc.cc.lib
-    pkgs.pkgsCross.gnu32.glibc
+  # Libraries Box64 has explicit C-wrappers for, see https://github.com/ptitSeb/box64/tree/main/src/wrapped
+  nativeBox64Libs = with pkgs; [
+    alsa-lib libpulseaudio libsndfile openal
+    SDL2 SDL2_image SDL2_mixer SDL2_ttf SDL2_net
+    SDL SDL_image SDL_mixer SDL_ttf SDL_net
+    libGL libGLU vulkan-loader wayland
+    xorg.libX11 xorg.libXext xorg.libXrandr xorg.libXrender xorg.libxcb
+    xorg.libXfixes xorg.libXcomposite xorg.libXcursor xorg.libXdamage xorg.libXi
+    xorg.libXinerama xorg.libXScrnSaver xorg.libSM xorg.libICE
+    fontconfig freetype
+    libdrm libvdpau libvorbis libogg
+    gtk2 gtk3 glib dbus util-linux
   ];
 
-  # 64bit x86_64 counterpart of i686Libs, for guest programs like Project Zomboid's
-  # ProjectZomboid64 launcher (needs libstdc++.so.6 / libgcc_s.so.1 in 64bit).
-  x86_64Libs = [
-    pkgs.pkgsCross.gnu64.stdenv.cc.cc.lib
-    pkgs.pkgsCross.gnu64.glibc
-  ];
+  box64Wrapper = pkgs.writeShellScript "box64-wrapper" ''
+    export BOX64_LD_LIBRARY_PATH="${lib.makeLibraryPath nativeBox64Libs}''${BOX64_LD_LIBRARY_PATH:+:$BOX64_LD_LIBRARY_PATH}"
 
-  # aarch64 libs needed by box64's native(wrapped) libc/libbsd shims (e.g. libz.so.1).
-  # NixOS has no ldconfig/FHS search path, so these must be pointed at explicitly.
-  nativeLibs = [
-    pkgs.zlib
-  ];
+    # Force software rendering for GL contexts since you have no hardware acceleration
+    export LIBGL_ALWAYS_SOFTWARE=1
+
+    exec ${box64}/bin/box64 "$@"
+  '';
 in
 {
-  environment.systemPackages = [ box64 ] ++ i686Libs ++ x86_64Libs ++ nativeLibs;
+  boot.binfmt.preferStaticEmulators = false;
 
-  environment.sessionVariables.BOX64_LD_LIBRARY_PATH = ".:bin/:" + lib.makeLibraryPath (i686Libs ++ x86_64Libs);
-  environment.sessionVariables.LD_LIBRARY_PATH = lib.makeLibraryPath nativeLibs;
+  boot.binfmt.registrations = {
+    # 64-bit x86 ELF
+    "x86_64-linux" = {
+      interpreter            = "${box64Wrapper}";
+      magicOrExtension       = ''\x7fELF\x02\x01\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x02\x00\x3e\x00'';
+      mask                   = ''\xff\xff\xff\xff\xff\xfe\xfe\x00\xff\xff\xff\xff\xff\xff\xff\xff\xfe\xff\xff\xff'';
+      wrapInterpreterInShell = false;
+      preserveArgvZero       = false;
+      openBinary             = false;
+    };
+  };
+
+  nix.settings.extra-platforms = [
+    "x86_64-linux"
+    "i686-linux"
+    "i386-linux"
+  ];
+
+  environment.systemPackages = [ box64 ];
+
+  nixpkgs.overlays = [
+    (final: prev: {
+      x86 = import pkgs.path {
+        system = "x86_64-linux";
+        config.allowUnfree = true;
+        config.allowUnsupportedSystem = true;
+      };
+    })
+  ];
 }
