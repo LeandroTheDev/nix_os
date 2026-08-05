@@ -60,10 +60,11 @@ RUN apt-get update && apt-get install -y \
 # Copy the finished FEX binaries from the builder stage
 COPY --from=builder /usr/bin/FEX* /usr/bin/
 
-RUN mkdir -p "$APP_PATH" && \
-    groupadd -f wheel && \
+RUN groupadd -f wheel && \
     echo "%wheel ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers && \
-    useradd -m -s /bin/bash -G wheel admin
+    useradd -m -s /bin/bash -G wheel admin && \
+    mkdir -p "$APP_PATH" && \
+    chown -R admin:admin /home/admin
 
 USER root
 RUN echo "root:root" | chpasswd
