@@ -1,11 +1,9 @@
 FROM arm64v8/ubuntu:25.04 AS builder
 ENV DEBIAN_FRONTEND=noninteractive
 
-ENV APP_PATH="/root/app"
+ENV APP_PATH="/home/admin/app"
 # Source Engine library search
 ENV BOX64_LD_LIBRARY_PATH=".:bin/:/usr/lib/i386-linux-gnu:/lib/i386-linux-gnu"
-
-RUN mkdir -p "$APP_PATH"
 
 RUN dpkg --add-architecture i386 && \
     dpkg --add-architecture armhf && \
@@ -54,7 +52,9 @@ RUN git clone https://github.com/ptitSeb/box64.git /tmp/box64 && \
 RUN apt-get update && apt-get install -y sudo && apt-get clean && rm -rf /var/lib/apt/lists/* && \
     groupadd -f wheel && \
     echo "%wheel ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers && \
-    useradd -m -s /bin/bash -G wheel admin
+    useradd -m -s /bin/bash -G wheel admin && \
+    mkdir -p "$APP_PATH" && \
+    chown -R admin:admin /home/admin
 
 USER root
 RUN echo "root:root" | chpasswd
