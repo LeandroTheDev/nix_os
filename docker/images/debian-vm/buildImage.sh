@@ -23,9 +23,17 @@ fi
 
 read -p "Path to your SSH public key [~/.ssh/id_ed25519.pub]: " SSH_KEY_PATH
 SSH_KEY_PATH="${SSH_KEY_PATH:-$HOME/.ssh/id_ed25519.pub}"
+
 if [ ! -f "$SSH_KEY_PATH" ]; then
-  echo "Public key not found at $SSH_KEY_PATH, aborting."
-  exit 1
+  read -p "Public key not found at $SSH_KEY_PATH. Generate a new keypair there? (y/n): " GEN_KEY
+  if [[ "$GEN_KEY" =~ ^[Yy]$ ]]; then
+    PRIVATE_KEY_PATH="${SSH_KEY_PATH%.pub}"
+    mkdir -p "$(dirname "$PRIVATE_KEY_PATH")"
+    ssh-keygen -t ed25519 -f "$PRIVATE_KEY_PATH" -N "" -C "debian-vm" || { echo "Key generation failed, aborting."; exit 1; }
+  else
+    echo "Aborting, no SSH key available."
+    exit 1
+  fi
 fi
 SSH_PUBLIC_KEY="$(cat "$SSH_KEY_PATH")"
 
