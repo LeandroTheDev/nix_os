@@ -2,16 +2,18 @@
 
 {
   environment.systemPackages = with pkgs; [
+    # System
     vim
     wget
     curl
     sudo
     htop
+    # Server
     tmux
-    file
     git
-    binutils
-    qemu
     unzip
+    # Debug
+    file
+    binutils
   ];
 }
