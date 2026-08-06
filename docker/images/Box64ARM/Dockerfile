@@ -24,11 +24,14 @@ FROM debian:bookworm
 ENV DEBIAN_FRONTEND=noninteractive
 
 ENV APP_PATH="/home/admin/app"
+ENV APP_PATH="/home/admin/app"
 # Source Engine library search
 ENV BOX64_LD_LIBRARY_PATH=".:bin/:/usr/lib/i386-linux-gnu:/lib/i386-linux-gnu"
 
 RUN dpkg --add-architecture i386 && \
     dpkg --add-architecture armhf && \
+    sed -i '/^Types:/i Architectures: arm64 armhf' /etc/apt/sources.list.d/ubuntu.sources && \
+    printf 'Types: deb\nURIs: http://archive.ubuntu.com/ubuntu\nSuites: plucky plucky-updates plucky-backports plucky-security\nComponents: main restricted universe multiverse\nArchitectures: i386\n' > /etc/apt/sources.list.d/i386.sources && \
     apt-get update && apt-get install -y \
     ca-certificates \
     curl \
@@ -38,8 +41,8 @@ RUN dpkg --add-architecture i386 && \
     libgcc-s1 \
     libc6:i386 \
     libstdc++6:i386 \
-    libncurses5:i386 \
-    libtinfo5:i386 \
+    libncurses6:i386 \
+    libtinfo6:i386 \
     libgcc-s1:i386 \
     libc6:armhf \
     libstdc++6:armhf \
@@ -60,7 +63,9 @@ RUN ldconfig
 
 RUN groupadd -f wheel && \
     echo "%wheel ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers && \
-    useradd -m -s /bin/bash -G wheel admin
+    useradd -m -s /bin/bash -G wheel admin && \
+    mkdir -p "$APP_PATH" && \
+    chown -R admin:admin /home/admin
 
 USER root
 RUN echo "root:root" | chpasswd
