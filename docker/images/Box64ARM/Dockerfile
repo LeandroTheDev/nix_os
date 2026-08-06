@@ -24,14 +24,19 @@ FROM debian:bookworm
 ENV DEBIAN_FRONTEND=noninteractive
 
 ENV APP_PATH="/home/admin/app"
-ENV APP_PATH="/home/admin/app"
 # Source Engine library search
 ENV BOX64_LD_LIBRARY_PATH=".:bin/:/usr/lib/i386-linux-gnu:/lib/i386-linux-gnu"
+# Known Box32/Steam runtime quirks (dbus fatal warnings crash, steam runtime detection)
+ENV DBUS_FATAL_WARNINGS=0 \
+    STEAM_RUNTIME=1 \
+    STEAMOS=1 \
+    LD_PRELOAD=libpthread.so.0 \
+    BOX64_LD_PRELOAD=libpthread.so.0 \
+    BOX64_ENV1="DBUS_FATAL_WARNINGS=0" \
+    BOX64_ENV2="STEAM_RUNTIME=1" \
+    BOX64_ENV3="STEAMOS=1"
 
 RUN dpkg --add-architecture i386 && \
-    dpkg --add-architecture armhf && \
-    sed -i '/^Types:/i Architectures: arm64 armhf' /etc/apt/sources.list.d/ubuntu.sources && \
-    printf 'Types: deb\nURIs: http://archive.ubuntu.com/ubuntu\nSuites: plucky plucky-updates plucky-backports plucky-security\nComponents: main restricted universe multiverse\nArchitectures: i386\n' > /etc/apt/sources.list.d/i386.sources && \
     apt-get update && apt-get install -y \
     ca-certificates \
     curl \
@@ -44,9 +49,15 @@ RUN dpkg --add-architecture i386 && \
     libncurses6:i386 \
     libtinfo6:i386 \
     libgcc-s1:i386 \
-    libc6:armhf \
-    libstdc++6:armhf \
-    libgcc-s1:armhf \
+    libcurl4:i386 \
+    libssl3:i386 \
+    zlib1g:i386 \
+    liblzma5:i386 \
+    libsqlite3-0:i386 \
+    libdbus-1-3:i386 \
+    libnuma1:i386 \
+    libudev1:i386 \
+    libbz2-1.0:i386 \
     libsdl2-2.0-0:i386 \
     libopenal1:i386 \
     libglib2.0-0:i386 \
@@ -60,6 +71,10 @@ RUN dpkg --add-architecture i386 && \
 
 COPY --from=builder /box64-install/ /
 RUN ldconfig
+
+# Dynarec tuning known to help SteamCMD/steamclient.so stability under Box32.
+# Only takes effect if/when a 32-bit "steamcmd" process is later run through box64.
+RUN printf '[steamcmd]\nBOX64_DYNAREC_BIGBLOCK=3\nBOX64_DYNAREC_CALLRET=2\nBOX64_DYNAREC_STRONGMEM=1\n\n' >> /etc/box64.box64rc
 
 RUN groupadd -f wheel && \
     echo "%wheel ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers && \
