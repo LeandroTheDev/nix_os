@@ -44,19 +44,24 @@ EOF
     cloud-localds "$SEED_ISO" "$DATA_DIR/user-data" "$DATA_DIR/meta-data"
 fi
 
-# 3. Detect KVM availability on the host
+# 3. Detect KVM availability on the host.
+# KVM only accelerates a guest matching the host's own CPU architecture, so it's
+# only usable here when the host itself is x86_64.
 ACCEL="tcg"
-if [ -e /dev/kvm ] && [ -r /dev/kvm ] && [ -w /dev/kvm ]; then
+CPU_MODEL="max"
+HOST_ARCH="$(uname -m)"
+if [ "$HOST_ARCH" = "x86_64" ] && [ -e /dev/kvm ] && [ -r /dev/kvm ] && [ -w /dev/kvm ]; then
     ACCEL="kvm"
+    CPU_MODEL="host"
     echo "==> KVM available, using hardware acceleration."
 else
-    echo "==> KVM not available, falling back to TCG (software emulation, slower)."
+    echo "==> KVM not usable (host arch: $HOST_ARCH), falling back to TCG (software emulation, slower)."
 fi
 
 # 4. Boot the VM
 exec qemu-system-x86_64 \
     -machine type=q35,accel=$ACCEL \
-    -cpu host \
+    -cpu $CPU_MODEL \
     -smp "$VM_CPUS" \
     -m "$VM_RAM" \
     -drive file="$DISK_IMG",if=virtio,format=qcow2 \

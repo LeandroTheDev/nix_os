@@ -40,6 +40,20 @@ SSH_PUBLIC_KEY="$(cat "$SSH_KEY_PATH")"
 read -p "Host port to forward to the VM's SSH (22) [2222]: " SSH_PORT
 SSH_PORT="${SSH_PORT:-2222}"
 
+HOST_RAM_MB=$(awk '/MemTotal/ {printf "%.0f", $2/1024}' /proc/meminfo)
+HOST_CORES=$(nproc)
+echo "Host total RAM: ${HOST_RAM_MB} MB"
+echo "Host CPU cores: ${HOST_CORES}"
+
+read -p "VM RAM in MB [2048]: " VM_RAM
+VM_RAM="${VM_RAM:-2048}"
+
+read -p "VM CPU cores [2]: " VM_CPUS
+VM_CPUS="${VM_CPUS:-2}"
+
+read -p "VM disk size, only applied on first creation [10G]: " VM_DISK_SIZE
+VM_DISK_SIZE="${VM_DISK_SIZE:-10G}"
+
 KVM_ARGS=()
 if [ -e /dev/kvm ]; then
   KVM_ARGS=(--device /dev/kvm)
@@ -52,6 +66,9 @@ docker run -d \
   -v "${CONTAINER_NAME}-data:/vm/data" \
   -p "${SSH_PORT}:22" \
   -e SSH_PUBLIC_KEY="$SSH_PUBLIC_KEY" \
+  -e VM_RAM="$VM_RAM" \
+  -e VM_CPUS="$VM_CPUS" \
+  -e VM_DISK_SIZE="$VM_DISK_SIZE" \
   "$IMAGE_NAME"
 
 if [ $? -eq 0 ]; then
