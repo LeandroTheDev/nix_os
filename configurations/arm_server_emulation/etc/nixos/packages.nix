@@ -12,6 +12,8 @@
     tmux
     git
     unzip
+    box64
+    box86
     # Debug
     file
     binutils
