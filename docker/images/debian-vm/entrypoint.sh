@@ -34,6 +34,11 @@ users:
     ssh_authorized_keys:
       - ${SSH_PUBLIC_KEY}
 ssh_pwauth: false
+package_update: true
+runcmd:
+  - dpkg --add-architecture i386
+  - apt-get update
+  - apt-get install -y libc6:i386 libstdc++6:i386 lib32gcc-s1 zlib1g:i386 ca-certificates
 EOF
 
     cat > "$DATA_DIR/meta-data" <<EOF
