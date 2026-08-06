@@ -27,8 +27,4 @@
   virtualisation.docker = {
     enable = true;
   };
-
-  environment.shellAliases = {
-    runx64 = "docker run --platform linux/amd64 --rm -it";
-  };
 }

@@ -1,11 +1,31 @@
+FROM debian:bookworm AS builder
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && apt-get install -y \
+    ca-certificates \
+    curl \
+    git \
+    cmake \
+    make \
+    build-essential \
+    python3 \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+RUN git clone https://github.com/ptitSeb/box64.git /tmp/box64 && \
+    mkdir -p /tmp/box64/build && \
+    cd /tmp/box64/build && \
+    cmake .. -DARM_DYNAREC=ON -DBOX32=ON -DBOX32_BINFMT=ON -DCMAKE_BUILD_TYPE=RelWithDebInfo && \
+    make -j$(nproc) && \
+    make install DESTDIR=/box64-install && \
+    rm -rf /tmp/box64
+
+# === STAGE 2: RUNNER ===
 FROM debian:bookworm
 ENV DEBIAN_FRONTEND=noninteractive
 
-ENV APP_PATH="/root/app"
+ENV APP_PATH="/home/admin/app"
 # Source Engine library search
 ENV BOX64_LD_LIBRARY_PATH=".:bin/:/usr/lib/i386-linux-gnu:/lib/i386-linux-gnu"
-
-RUN mkdir -p "$APP_PATH"
 
 RUN dpkg --add-architecture i386 && \
     dpkg --add-architecture armhf && \
@@ -16,19 +36,11 @@ RUN dpkg --add-architecture i386 && \
     libstdc++6 \
     zlib1g \
     libgcc-s1 \
-    python3 \
-    git \
-    cmake \
-    make \
-    build-essential \
     libc6:i386 \
     libstdc++6:i386 \
     libncurses5:i386 \
     libtinfo5:i386 \
     libgcc-s1:i386 \
-    gcc-arm-linux-gnueabihf \
-    g++-arm-linux-gnueabihf \
-    libc6-dev-armhf-cross \
     libc6:armhf \
     libstdc++6:armhf \
     libgcc-s1:armhf \
@@ -40,19 +52,13 @@ RUN dpkg --add-architecture i386 && \
     libgl1-mesa-dri:i386 \
     iputils-ping \
     iproute2 \
+    sudo \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-RUN git clone https://github.com/ptitSeb/box64.git /tmp/box64 && \
-    mkdir -p /tmp/box64/build && \
-    cd /tmp/box64/build && \
-    cmake .. -DARM_DYNAREC=ON -DBOX32=ON -DBOX32_BINFMT=ON -DCMAKE_BUILD_TYPE=RelWithDebInfo && \
-    make -j$(nproc) && \
-    make install && \
-    ldconfig && \
-    rm -rf /tmp/box64
+COPY --from=builder /box64-install/ /
+RUN ldconfig
 
-RUN apt-get update && apt-get install -y sudo && apt-get clean && rm -rf /var/lib/apt/lists/* && \
-    groupadd -f wheel && \
+RUN groupadd -f wheel && \
     echo "%wheel ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers && \
     useradd -m -s /bin/bash -G wheel admin
 
@@ -60,5 +66,6 @@ USER root
 RUN echo "root:root" | chpasswd
 USER admin
 WORKDIR /home/admin
+RUN mkdir -p "$APP_PATH"
 
 CMD ["/bin/bash"]
