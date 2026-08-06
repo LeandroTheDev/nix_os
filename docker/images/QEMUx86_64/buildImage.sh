@@ -4,7 +4,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 if [ -z "$(docker images -q "$IMAGE_NAME" 2>/dev/null)" ]; then
   echo "Image not found, building..."
-  docker build -t "$IMAGE_NAME" "$SCRIPT_DIR" || { echo "Build failed, aborting."; exit 1; }
+  docker build --platform linux/amd64 -t "$IMAGE_NAME" "$SCRIPT_DIR" || { echo "Build failed, aborting."; exit 1; }
 fi
 
 read -p "Enter the name for the container: " CONTAINER_NAME
@@ -36,6 +36,7 @@ done
 echo "Creating container..."
 docker run -dit \
   --pull=never \
+  --platform linux/amd64 \
   --name "$CONTAINER_NAME" \
   "${MOUNTS[@]}" \
   "$IMAGE_NAME" bash
