@@ -11,11 +11,7 @@ RUN apt-get update && apt-get install -y \
     python3 \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-COPY box64-aestrace.patch /tmp/box64-aestrace.patch
-
 RUN git clone https://github.com/ptitSeb/box64.git /tmp/box64 && \
-    cd /tmp/box64 && \
-    git apply /tmp/box64-aestrace.patch && \
     mkdir -p /tmp/box64/build && \
     cd /tmp/box64/build && \
     cmake .. -DARM_DYNAREC=ON -DBOX32=ON -DBOX32_BINFMT=ON -DCMAKE_BUILD_TYPE=RelWithDebInfo && \
@@ -75,10 +71,6 @@ RUN dpkg --add-architecture i386 && \
 
 COPY --from=builder /box64-install/ /
 RUN ldconfig
-
-# Dynarec tuning known to help SteamCMD/steamclient.so stability under Box32.
-# Only takes effect if/when a 32-bit "steamcmd" process is later run through box64.
-RUN printf '[steamcmd]\nBOX64_DYNAREC_BIGBLOCK=3\nBOX64_DYNAREC_CALLRET=2\nBOX64_DYNAREC_STRONGMEM=1\n\n' >> /etc/box64.box64rc
 
 RUN groupadd -f wheel && \
     echo "%wheel ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers && \
