@@ -20,7 +20,11 @@ fi
 # steamcmd dir, with LD_LIBRARY_PATH pointed at linux32/ for the Steam client
 # libs - same as what steamcmd.sh itself would set up.
 # SteamCMD (and the game update itself) can flake out under box64, so retry a
-# few times before giving up.
+# few times before giving up. Note: SteamCMD/box64's own exit code is not
+# trustworthy here - it can report success even after printing
+# "ERROR! Failed to install app ... (Missing configuration)" and installing
+# nothing. So success is judged by the presence of the game's own
+# start-server.sh afterwards, not by the command's exit status.
 
 # Fix steam connections
 export BOX64_AES=0
@@ -30,15 +34,17 @@ ATTEMPT=1
 SUCCESS=0
 while [ "$ATTEMPT" -le "$MAX_ATTEMPTS" ]; do
     echo "==> Running SteamCMD (attempt $ATTEMPT/$MAX_ATTEMPTS)..."
-    if (cd "$STEAMCMD_DIR" && LD_LIBRARY_PATH="linux32:${LD_LIBRARY_PATH:-}" box64 linux32/steamcmd \
+    (cd "$STEAMCMD_DIR" && LD_LIBRARY_PATH="linux32:${LD_LIBRARY_PATH:-}" box64 linux32/steamcmd \
         +force_install_dir "$PZ_INSTALL_DIR" \
         +login anonymous \
         +app_update "$PZ_APPID" validate \
-        +quit); then
+        +quit)
+
+    if [ -f "$PZ_INSTALL_DIR/start-server.sh" ]; then
         SUCCESS=1
         break
     fi
-    echo "==> SteamCMD failed, retrying..."
+    echo "==> SteamCMD did not install the server, retrying..."
     ATTEMPT=$((ATTEMPT + 1))
     sleep 2
 done

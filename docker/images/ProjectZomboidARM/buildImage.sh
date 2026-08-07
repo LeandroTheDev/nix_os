@@ -13,8 +13,11 @@ while [ -z "$CONTAINER_NAME" ]; do
 done
 
 if docker ps --format "{{.Names}}" | grep -q "^${CONTAINER_NAME}$"; then
-  echo "Container already up, entering..."
-  docker exec -it "$CONTAINER_NAME" bash
+  echo "Container already up, attaching to logs (Ctrl+C to detach, container keeps running)..."
+  sleep 2
+  docker logs -f "$CONTAINER_NAME"
+  echo "To enter the container, run:"
+  echo "  docker exec -it $CONTAINER_NAME bash"
   exit 0
 elif docker ps -a --format "{{.Names}}" | grep -q "^${CONTAINER_NAME}$"; then
   echo "Container stopped, starting..."
@@ -47,6 +50,9 @@ docker run -dit \
 
 if [ $? -eq 0 ]; then
   echo "Container '$CONTAINER_NAME' created successfully."
+  echo "Attaching to logs (Ctrl+C to detach, container keeps running in background)..."
+  sleep 2
+  docker logs -f "$CONTAINER_NAME"
   echo "To enter the container, run:"
   echo "  docker exec -it $CONTAINER_NAME bash"
 else
