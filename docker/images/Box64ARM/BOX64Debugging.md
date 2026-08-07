@@ -91,10 +91,16 @@ Manually halving the range and re-running by hand (as above) works but is slow a
 
 Edit the `bug_is_fixed()` function inside the script first — it needs to know how to detect, for your specific case, whether the bug is present or fixed for a given `BOX64_NODYNAREC` range (an exit code, a log line, absence of a timeout, etc). For "Steam fails to connect," that's typically a log line or network event that only appears once the connection succeeds — check `steam.log`/`content_log.txt` or the process' own stdout for it.
 
-The script:
-1. Sanity-checks that disabling the *entire* starting range fixes the bug (otherwise the range doesn't contain the culprit, or the bug isn't DynaRec-related at all).
-2. Repeatedly halves the range, keeping whichever half still fixes the bug when disabled, until the window shrinks to ~64 bytes (about one small DynaRec block).
-3. Prints the final narrow range and the `BOX64_DYNAREC_TEST` command to run next.
+`bug_is_fixed()` starts `<program>` in the background and polls its log for either the failure line or the success line, killing the process the moment one of them shows up — it does not wait for the full `TIMEOUT_SECS` on every run (only as a safety net if neither line ever appears, e.g. an unrelated crash). This matters because on the success path the program typically never exits on its own (a dedicated server just keeps running for players), so **`<program>` must `exec` into the actual emulated binary** rather than calling it as the last line of a wrapper shell script. Without `exec`, the PID the script kills is the wrapper shell, not `box64` — `box64` (and the game) would be left running as an orphan holding the server port, breaking every subsequent iteration.
+
+Disabling the *entire* starting range up front (equivalent to `BOX64_DYNAREC=0`) is correct but can be brutally slow for something like a JVM boot, since every hot path runs interpreted. To avoid paying that cost on every run, the script instead grows the disabled window from the low end:
+
+1. Confirms the bug reproduces with nothing disabled (fast — normal, broken run).
+2. Doubles a small window (`INITIAL_WIDTH`, default `0x10000`) anchored at the start address until disabling it fixes the bug — a "galloping search." Each of these runs only has a sliver of the address space disabled, so most of them stay fast.
+3. Bisects (halves) within that much smaller bracket — same halving as before, but now starting from a window close to the actual culprit instead of the full range — until it shrinks to ~64 bytes (about one small DynaRec block).
+4. Prints the final narrow range and the `BOX64_DYNAREC_TEST` command to run next.
+
+If step 2 never fixes the bug even by the time the window reaches the full range, the script exits with an error — the culprit likely isn't reachable as a contiguous prefix starting at the range's low end (try swapping which end of `get-process-range.sh`'s range you anchor from), or it isn't a DynaRec bug at all.
 
 ### Verifying that a per-library rcfile section was applied
 
