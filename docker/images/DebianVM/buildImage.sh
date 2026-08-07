@@ -5,6 +5,12 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 if [ -z "$(docker images -q "$IMAGE_NAME" 2>/dev/null)" ]; then
   echo "Image not found, building..."
   docker build -t "$IMAGE_NAME" "$SCRIPT_DIR" || { echo "Build failed, aborting."; exit 1; }
+else
+  read -p "Image '$IMAGE_NAME' already exists. Rebuild it? (y/N): " REBUILD_IMAGE
+  if [[ "$REBUILD_IMAGE" =~ ^[Yy]$ ]]; then
+    echo "Rebuilding image..."
+    docker build -t "$IMAGE_NAME" "$SCRIPT_DIR" || { echo "Build failed, aborting."; exit 1; }
+  fi
 fi
 
 read -p "Enter the name for the container: " CONTAINER_NAME

@@ -5,6 +5,12 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 if [ -z "$(docker images -q "$IMAGE_NAME" 2>/dev/null)" ]; then
   echo "Image not found, building..."
   docker build -t "$IMAGE_NAME" "$SCRIPT_DIR" || { echo "Build failed, aborting."; exit 1; }
+else
+  read -p "Image '$IMAGE_NAME' already exists. Rebuild it? (y/N): " REBUILD_IMAGE
+  if [[ "$REBUILD_IMAGE" =~ ^[Yy]$ ]]; then
+    echo "Rebuilding image..."
+    docker build -t "$IMAGE_NAME" "$SCRIPT_DIR" || { echo "Build failed, aborting."; exit 1; }
+  fi
 fi
 
 read -p "Enter the name for the container: " CONTAINER_NAME
@@ -25,12 +31,12 @@ fi
 read -p "Enter the path to your app on this device: " APP_PATH
 MOUNTS=(-v "${APP_PATH}:/home/admin/app")
 
-read -p "Do you need to mount anything else? (y/n): " NEED_MORE_MOUNTS
+read -p "Do you need to mount anything else? (y/N): " NEED_MORE_MOUNTS
 while [[ "$NEED_MORE_MOUNTS" =~ ^[Yy]$ ]]; do
   read -p "  Path on your device: " HOST_PATH
   read -p "  Path inside the container (relative to /home/admin/): " CONTAINER_SUBPATH
   MOUNTS+=(-v "${HOST_PATH}:/home/admin/${CONTAINER_SUBPATH}")
-  read -p "Do you need to mount anything else? (y/n): " NEED_MORE_MOUNTS
+  read -p "Do you need to mount anything else? (y/N): " NEED_MORE_MOUNTS
 done
 
 echo "Creating container..."
