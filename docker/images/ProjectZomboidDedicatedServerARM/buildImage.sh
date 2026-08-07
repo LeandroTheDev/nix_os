@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 IMAGE_NAME="projectzomboiddedicatedserveraarm"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 

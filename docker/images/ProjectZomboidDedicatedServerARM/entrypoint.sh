@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -uo pipefail
 
 APP_PATH="${APP_PATH:-/home/admin/app}"

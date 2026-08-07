@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 IMAGE_NAME="fexarm"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 

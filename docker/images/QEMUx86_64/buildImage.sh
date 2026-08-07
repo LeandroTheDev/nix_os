@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 IMAGE_NAME="qemux86_64"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
