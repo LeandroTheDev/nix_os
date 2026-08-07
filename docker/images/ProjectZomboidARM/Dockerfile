@@ -1,0 +1,97 @@
+FROM debian:bookworm AS builder
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && apt-get install -y \
+    ca-certificates \
+    curl \
+    git \
+    cmake \
+    make \
+    build-essential \
+    python3 \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+RUN git clone https://github.com/ptitSeb/box64.git /tmp/box64 && \
+    mkdir -p /tmp/box64/build && \
+    cd /tmp/box64/build && \
+    cmake .. -DARM_DYNAREC=ON -DBOX32=ON -DBOX32_BINFMT=ON -DCMAKE_BUILD_TYPE=RelWithDebInfo && \
+    make -j$(nproc) && \
+    make install DESTDIR=/box64-install && \
+    rm -rf /tmp/box64
+
+# === STAGE 2: RUNNER ===
+FROM debian:bookworm
+ENV DEBIAN_FRONTEND=noninteractive
+
+ENV APP_PATH="/home/admin/app"
+# RAM allocated to the Project Zomboid server JVM (-Xmx), override with -e PZ_MEMORY=4g
+ENV PZ_MEMORY="2g"
+# Source Engine library search
+ENV BOX64_LD_LIBRARY_PATH=".:bin/:/usr/lib/i386-linux-gnu:/lib/i386-linux-gnu"
+# Known Box32/Steam runtime quirks (dbus fatal warnings crash, steam runtime detection)
+ENV DBUS_FATAL_WARNINGS=0 \
+    STEAM_RUNTIME=1 \
+    STEAMOS=1 \
+    LD_PRELOAD=libpthread.so.0 \
+    BOX64_LD_PRELOAD=libpthread.so.0 \
+    BOX64_ENV1="DBUS_FATAL_WARNINGS=0" \
+    BOX64_ENV2="STEAM_RUNTIME=1" \
+    BOX64_ENV3="STEAMOS=1"
+
+RUN dpkg --add-architecture i386 && \
+    apt-get update && apt-get install -y \
+    ca-certificates \
+    curl \
+    libc6 \
+    libstdc++6 \
+    zlib1g \
+    libgcc-s1 \
+    libc6:i386 \
+    libstdc++6:i386 \
+    libncurses6:i386 \
+    libtinfo6:i386 \
+    libgcc-s1:i386 \
+    libcurl4:i386 \
+    libssl3:i386 \
+    zlib1g:i386 \
+    liblzma5:i386 \
+    libsqlite3-0:i386 \
+    libdbus-1-3:i386 \
+    libnuma1:i386 \
+    libudev1:i386 \
+    libbz2-1.0:i386 \
+    libsdl2-2.0-0:i386 \
+    libopenal1:i386 \
+    libglib2.0-0:i386 \
+    libfontconfig1:i386 \
+    libgl1:i386 \
+    libgl1-mesa-dri:i386 \
+    iputils-ping \
+    iproute2 \
+    sudo \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+COPY --from=builder /box64-install/ /
+RUN ldconfig
+
+RUN groupadd -f wheel && \
+    echo "%wheel ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers && \
+    useradd -m -s /bin/bash -G wheel admin && \
+    mkdir -p "$APP_PATH" && \
+    chown -R admin:admin /home/admin
+
+USER root
+RUN echo "root:root" | chpasswd
+
+COPY entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
+COPY start-server-box64.sh /opt/start-server-box64.sh
+RUN chmod +x /opt/start-server-box64.sh
+
+USER admin
+WORKDIR /home/admin
+RUN mkdir -p "$APP_PATH"
+
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
+CMD ["/bin/bash"]

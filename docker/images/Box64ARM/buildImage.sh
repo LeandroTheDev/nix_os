@@ -36,6 +36,7 @@ done
 echo "Creating container..."
 docker run -dit \
   --pull=never \
+  --network host \
   --name "$CONTAINER_NAME" \
   "${MOUNTS[@]}" \
   "$IMAGE_NAME" bash
