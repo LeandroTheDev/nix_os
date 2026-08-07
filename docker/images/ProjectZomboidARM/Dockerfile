@@ -69,6 +69,7 @@ RUN dpkg --add-architecture i386 && \
     iputils-ping \
     iproute2 \
     sudo \
+    tmux \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 COPY --from=builder /box64-install/ /

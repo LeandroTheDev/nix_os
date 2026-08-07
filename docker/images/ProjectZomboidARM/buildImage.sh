@@ -18,6 +18,9 @@ if docker ps --format "{{.Names}}" | grep -q "^${CONTAINER_NAME}$"; then
   docker logs -f "$CONTAINER_NAME"
   echo "To enter the container, run:"
   echo "  docker exec -it $CONTAINER_NAME bash"
+  echo "To attach to the server console (tmux), run:"
+  echo "  docker exec -it $CONTAINER_NAME tmux attach -t zomboid"
+  echo "  (Ctrl+B then D to detach without stopping the server)"
   exit 0
 elif docker ps -a --format "{{.Names}}" | grep -q "^${CONTAINER_NAME}$"; then
   echo "Container stopped, starting..."
@@ -55,6 +58,9 @@ if [ $? -eq 0 ]; then
   docker logs -f "$CONTAINER_NAME"
   echo "To enter the container, run:"
   echo "  docker exec -it $CONTAINER_NAME bash"
+  echo "To attach to the server console (tmux), run:"
+  echo "  docker exec -it $CONTAINER_NAME tmux attach -t zomboid"
+  echo "  (Ctrl+B then D to detach without stopping the server)"
 else
   echo "Failed to create container."
   exit 1

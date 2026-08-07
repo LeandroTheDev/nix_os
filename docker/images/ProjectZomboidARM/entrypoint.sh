@@ -5,6 +5,7 @@ APP_PATH="${APP_PATH:-/home/admin/app}"
 STEAMCMD_DIR="$APP_PATH/steamcmd"
 PZ_INSTALL_DIR="$APP_PATH/pzserver"
 PZ_APPID=380870
+TMUX_SESSION="zomboid"
 
 mkdir -p "$STEAMCMD_DIR" "$PZ_INSTALL_DIR"
 
@@ -29,7 +30,7 @@ fi
 # Fix steam connections
 export BOX64_AES=0
 
-MAX_ATTEMPTS=5
+MAX_ATTEMPTS=10
 ATTEMPT=1
 SUCCESS=0
 while [ "$ATTEMPT" -le "$MAX_ATTEMPTS" ]; do
@@ -60,5 +61,12 @@ echo "==> Project Zomboid server ready at $PZ_INSTALL_DIR"
 cp /opt/start-server-box64.sh "$PZ_INSTALL_DIR/start-server-box64.sh"
 chmod +x "$PZ_INSTALL_DIR/start-server-box64.sh"
 
-echo "==> Starting Project Zomboid server..."
-exec "$PZ_INSTALL_DIR/start-server-box64.sh"
+echo "==> Starting Project Zomboid server in tmux session '$TMUX_SESSION'..."
+tmux new-session -d -s "$TMUX_SESSION" "$PZ_INSTALL_DIR/start-server-box64.sh"
+
+# Keep the container alive for as long as the tmux session (i.e. the server)
+# is up, so admins can attach to the server console with:
+#   docker exec -it <container> tmux attach -t zomboid
+while tmux has-session -t "$TMUX_SESSION" 2>/dev/null; do
+    sleep 5
+done
