@@ -70,6 +70,32 @@ BOX64_NODYNAREC=0x7fff0c000000-0x7fff12000000
 BOX64_NODYNAREC=0x7fff0c000000-0x7fff0c060000
 ```
 
+#### Getting the whole-process range to start from
+
+Instead of guessing which libraries are "suspected," start from the range that covers everything Box64 loaded, then let bisection do the work:
+
+```bash
+BOX64_LOG=2 box64 <program> > box64.log 2>&1
+./get-process-range.sh box64.log
+```
+
+This parses every `Pre-allocated` line and prints the union of all module ranges as `Full process range: 0xSTART-0xEND` — use that as the starting range for bisection instead of the entire `0x0-0x7fffffffffff` userspace (which is correct too, but wastes steps narrowing through address space nothing is loaded into).
+
+#### Automating the bisection
+
+Manually halving the range and re-running by hand (as above) works but is slow and error-prone once you're down to dozens of iterations. `bisect-dynarec.sh` automates it:
+
+```bash
+./bisect-dynarec.sh 0xSTART 0xEND -- <program> [args...]
+```
+
+Edit the `bug_is_fixed()` function inside the script first — it needs to know how to detect, for your specific case, whether the bug is present or fixed for a given `BOX64_NODYNAREC` range (an exit code, a log line, absence of a timeout, etc). For "Steam fails to connect," that's typically a log line or network event that only appears once the connection succeeds — check `steam.log`/`content_log.txt` or the process' own stdout for it.
+
+The script:
+1. Sanity-checks that disabling the *entire* starting range fixes the bug (otherwise the range doesn't contain the culprit, or the bug isn't DynaRec-related at all).
+2. Repeatedly halves the range, keeping whichever half still fixes the bug when disabled, until the window shrinks to ~64 bytes (about one small DynaRec block).
+3. Prints the final narrow range and the `BOX64_DYNAREC_TEST` command to run next.
+
 ### Verifying that a per-library rcfile section was applied
 
 The log confirms when an rcfile section was applied:

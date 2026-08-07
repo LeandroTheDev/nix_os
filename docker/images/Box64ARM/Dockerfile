@@ -11,7 +11,11 @@ RUN apt-get update && apt-get install -y \
     python3 \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
+COPY box64-aestrace.patch /tmp/box64-aestrace.patch
+
 RUN git clone https://github.com/ptitSeb/box64.git /tmp/box64 && \
+    cd /tmp/box64 && \
+    git apply /tmp/box64-aestrace.patch && \
     mkdir -p /tmp/box64/build && \
     cd /tmp/box64/build && \
     cmake .. -DARM_DYNAREC=ON -DBOX32=ON -DBOX32_BINFMT=ON -DCMAKE_BUILD_TYPE=RelWithDebInfo && \
