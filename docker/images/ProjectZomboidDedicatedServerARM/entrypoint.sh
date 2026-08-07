@@ -62,7 +62,7 @@ cp /opt/start-server-box64.sh "$PZ_INSTALL_DIR/start-server-box64.sh"
 chmod +x "$PZ_INSTALL_DIR/start-server-box64.sh"
 
 echo "==> Starting Project Zomboid server in tmux session '$TMUX_SESSION'..."
-tmux new-session -d -s "$TMUX_SESSION" "$PZ_INSTALL_DIR/start-server-box64.sh"
+tmux new-session -d -s "$TMUX_SESSION" -c "$PZ_INSTALL_DIR" "$PZ_INSTALL_DIR/start-server-box64.sh"
 
 # Keep the container alive for as long as the tmux session (i.e. the server)
 # is up, so admins can attach to the server console with:

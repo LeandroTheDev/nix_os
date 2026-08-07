@@ -1,5 +1,5 @@
 #!/bin/bash
-IMAGE_NAME="projectzomboiddedicatedserveraarch64"
+IMAGE_NAME="projectzomboiddedicatedserveraarm"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 if [ -z "$(docker images -q "$IMAGE_NAME" 2>/dev/null)" ]; then
