@@ -42,6 +42,7 @@ FROM arm64v8/ubuntu:25.04
 ENV DEBIAN_FRONTEND=noninteractive
 
 ENV APP_PATH="/home/admin/app"
+ENV FEX_ROOTFS="/home/admin/.local/share/fex-emu/RootFS/Ubuntu_24_04"
 
 RUN apt-get update && apt-get install -y \
     libsdl3-0 \
@@ -82,8 +83,8 @@ RUN FEXRootFSFetcher -y -x --force-ui=tty --distro-name=ubuntu --distro-version=
                       -maxdepth 1 -mindepth 1 -type d 2>/dev/null | head -1) && \
     [ -n "$ROOTFS_DIR" ] || { echo "ERROR: RootFS not extracted — check squashfs-tools"; exit 1; } && \
     ROOTFS_NAME=$(basename "$ROOTFS_DIR") && \
-    mkdir -p "${HOME}/.config/FEXemu" && \
-    printf '{"Config":{"RootFS":"%s"}}' "$ROOTFS_NAME" > "${HOME}/.config/FEXemu/Config.json" && \
-    echo "FEX configured: $ROOTFS_NAME"
+    mkdir -p "${HOME}/.fex-emu" && \
+    printf '{"Config":{"RootFS":"%s"}}' "$ROOTFS_DIR" > "${HOME}/.fex-emu/Config.json" && \
+    echo "FEX configured: $ROOTFS_DIR"
 
 CMD ["/bin/bash"]
