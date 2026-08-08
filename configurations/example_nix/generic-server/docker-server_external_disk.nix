@@ -1,5 +1,10 @@
 # Example systemd service for a Docker-based server with graceful shutdown
 # and data stored on an external disk.
+# This template assumes a fixed, pre-existing container (created externally or
+# via docker create). It uses "docker start -a" to attach to the container in
+# the foreground so systemd can track the process, and "docker stop" for
+# graceful shutdown. Do NOT use this template if you want Docker to manage the
+# container lifecycle with "docker run --rm".
 # When the service stops or restarts (including the daily midnight restart),
 # systemd runs ExecStop first, which gives Docker time to shut the container
 # down gracefully before killing anything.
@@ -32,8 +37,9 @@
 
     serviceConfig = {
       Type = "exec";
-      # --rm removes the container automatically when it exits, keeping things clean.
-      ExecStart = "/run/current-system/sw/bin/docker run --rm --name generic-server --network host -v /home/generic-user/generic-server-data:/data ghcr.io/example/generic-server:latest";
+      # -a attaches stdout/stderr so systemd tracks the process in the foreground.
+      # The container must already exist (created via docker create or externally).
+      ExecStart = "/run/current-system/sw/bin/docker start -a generic-server";
       # Sends graceful stop signal to the container. Adjust --time to match
       # however long the server needs to save/shutdown (e.g. 90 for PZ).
       ExecStop = "/run/current-system/sw/bin/docker stop --time 90 generic-server";
