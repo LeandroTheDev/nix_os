@@ -10,7 +10,7 @@ export BOX64_DYNAREC_SAFEFLAGS=2
 # Fix G1 GC parallel thread crashes (SIGSEGV in trim_queue_to_threshold)
 # BOX64_JVM=1 only sets STRONGMEM=1; level 3 adds barriers more frequently,
 # closer to x86 TSO which G1 GC work-stealing depends on. ONLY ENABLE IF THE CRASHES ARE WAY TO COMMON THE PERFORMANCE IMPACT IS BIG!
-# export BOX64_DYNAREC_STRONGMEM=3
+export BOX64_DYNAREC_STRONGMEM=2
 # Emulate x86 PAUSE (used in GC spinlocks) with ARM YIELD to avoid race conditions
 export BOX64_DYNAREC_PAUSE=1
 # Use safer (slower) memory barriers instead of weak ones
