@@ -47,6 +47,7 @@ RUN apt-get update && apt-get install -y \
     libsdl3-0 \
     libssl3t64 \
     squashfuse \
+    squashfs-tools \
     fuse3 \
     libc-bin \
     curl \
@@ -72,9 +73,17 @@ RUN echo "root:root" | chpasswd
 USER admin
 WORKDIR /home/admin
 
-# Fetch an x86-64 RootFS non-interactively. Unlike Box64/Box86, FEX doesn't
-# wrap native ARM64 libraries in place of the x86 ones, it needs a real x86
-# userland (glibc, ld.so, etc.) to run guest binaries against.
-RUN FEXRootFSFetcher -y -x --force-ui=tty --distro-name=ubuntu --distro-version=24.04
+# Fetch and extract the x86-64 RootFS during build so no FUSE is required at runtime.
+# -x tells FEXRootFSFetcher to call unsquashfs (squashfs-tools must be installed above).
+# We then write Config.json explicitly because non-interactive mode can silently skip it
+# if unsquashfs was previously unavailable and fell back to squashfs-as-is mode.
+RUN FEXRootFSFetcher -y -x --force-ui=tty --distro-name=ubuntu --distro-version=24.04 && \
+    ROOTFS_DIR=$(find "${HOME}/.local/share/fex-emu/RootFS" "${HOME}/.fex-emu/RootFS" \
+                      -maxdepth 1 -mindepth 1 -type d 2>/dev/null | head -1) && \
+    [ -n "$ROOTFS_DIR" ] || { echo "ERROR: RootFS not extracted — check squashfs-tools"; exit 1; } && \
+    ROOTFS_NAME=$(basename "$ROOTFS_DIR") && \
+    mkdir -p "${HOME}/.config/FEXemu" && \
+    printf '{"Config":{"RootFS":"%s"}}' "$ROOTFS_NAME" > "${HOME}/.config/FEXemu/Config.json" && \
+    echo "FEX configured: $ROOTFS_NAME"
 
 CMD ["/bin/bash"]
