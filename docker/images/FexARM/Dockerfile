@@ -57,6 +57,7 @@ RUN apt-get update && apt-get install -y \
     vim \
     nano \
     tmux \
+    strace \
     binfmt-support && \
     rm -rf /var/lib/apt/lists/*
 
