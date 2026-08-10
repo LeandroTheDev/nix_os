@@ -94,36 +94,6 @@ RUN FEXRootFSFetcher -y -x --force-ui=tty --distro-name=ubuntu --distro-version=
     printf '{"Config":{"RootFS":"%s"}}' "$ROOTFS_DIR" > "${HOME}/.fex-emu/Config.json" && \
     echo "FEX configured: $ROOTFS_DIR"
 
-# The stock Ubuntu 24.04 FEX RootFS is tuned for desktop Steam gaming (SDL2, OpenAL,
-# Mesa GL, OpenSSL are already in it) but is missing a handful of 32-bit libs that
-# SteamCMD and the Source engine dedicated server (srcds_linux, both 32-bit x86)
-# need. Top them up inside the guest RootFS via FEXBash (its own real apt/dpkg).
-# Run as root (sudo) so the guest apt-get's "are you root" checks pass; -E/env
-# preserve FEX_ROOTFS since sudo resets $HOME and FEX's config lookup is per-user.
-# The guest RootFS's apt-key is broken (its InRelease signature check calls
-# apt-key, which fails to execute), so every repo looks "not signed" to apt.
-# Upgrading gnupg to fix that instead breaks dpkg, since this minimal RootFS
-# is missing directories (e.g. /etc/logcheck) that its postinst expects to
-# exist. Simplest safe fix for this one-off, build-time library fetch: skip
-# authentication entirely rather than repairing it.
-# --no-upgrade keeps this to just the new libs: without it, apt drags in a
-# cascading upgrade of already-installed packages (systemd, curl, ncurses...)
-# to satisfy versions, and unpacking those trips a dpkg state inconsistency
-# already baked into this RootFS (ncurses-bin "already installed and
-# configured"), aborting the whole install.
-RUN sudo env FEX_ROOTFS="$FEX_ROOTFS" FEXBash -c "apt-get update -o Acquire::AllowInsecureRepositories=true && \
-        apt-get install -y --no-upgrade --allow-unauthenticated \
-        libcurl4:i386 \
-        libtinfo6:i386 \
-        liblzma5:i386 \
-        libsqlite3-0:i386 \
-        libdbus-1-3:i386 \
-        libnuma1:i386 \
-        libudev1:i386 \
-        libbz2-1.0:i386 \
-        libfontconfig1:i386 && \
-        apt-get clean && rm -rf /var/lib/apt/lists/*"
-
 RUN mkdir -p "$APP_PATH"
 
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
