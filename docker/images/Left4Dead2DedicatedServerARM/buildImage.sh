@@ -34,10 +34,9 @@ elif docker ps -a --format "{{.Names}}" | grep -q "^${CONTAINER_NAME}$"; then
   exit 0
 fi
 
-read -p "Enter the path to your server data folder on this device: " DATA_PATH
-MOUNTS=(-v "${DATA_PATH}:/home/admin/app")
+MOUNTS=()
 
-read -p "Do you need to mount anything else? (y/N): " NEED_MORE_MOUNTS
+read -p "Do you need to mount anything? (y/N): " NEED_MORE_MOUNTS
 while [[ "$NEED_MORE_MOUNTS" =~ ^[Yy]$ ]]; do
   read -p "  Path on your device: " HOST_PATH
   read -p "  Path inside the container (relative to /home/admin/): " CONTAINER_SUBPATH
