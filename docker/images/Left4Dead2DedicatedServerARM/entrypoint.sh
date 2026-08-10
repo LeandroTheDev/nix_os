@@ -27,6 +27,7 @@ SUCCESS=0
 while [ "$ATTEMPT" -le "$MAX_ATTEMPTS" ]; do
     echo "==> Running SteamCMD (attempt $ATTEMPT/$MAX_ATTEMPTS)..."
     (cd "$STEAMCMD_DIR" && BOX86_LD_LIBRARY_PATH="linux32" box86 linux32/steamcmd \
+        +@sSteamCmdForcePlatformType linux \
         +force_install_dir "$L4D2_INSTALL_DIR" \
         +login anonymous \
         +app_update "$L4D2_APPID" validate \
