@@ -7,9 +7,18 @@ L4D2_INSTALL_DIR="$APP_PATH/l4d2server"
 L4D2_APPID=222860
 TMUX_SESSION="l4d2"
 
+if [ -z "${STEAM_USERNAME:-}" ]; then
+    echo "ERROR: STEAM_USERNAME is not set. Valve now requires an authenticated" >&2
+    echo "Steam login to download the L4D2 dedicated server depot (222860) —" >&2
+    echo "anonymous login fails with 'Invalid platform'. Set -e STEAM_USERNAME=<user>" >&2
+    echo "when creating the container and attach to enter the password/Steam Guard" >&2
+    echo "code interactively on first login." >&2
+    exit 1
+fi
+
 mkdir -p "$STEAMCMD_DIR" "$L4D2_INSTALL_DIR"
 
-# 1. Download SteamCMD once, persisted in the mounted volume
+# 1. Download SteamCMD once, persisted in the container's own filesystem
 if [ ! -f "$STEAMCMD_DIR/linux32/steamcmd" ]; then
     echo "==> Downloading SteamCMD..."
     (cd "$STEAMCMD_DIR" && curl -sqL "https://steamcdn-a.akamaihd.net/client/installer/steamcmd_linux.tar.gz" | tar zxvf -)
@@ -27,9 +36,8 @@ SUCCESS=0
 while [ "$ATTEMPT" -le "$MAX_ATTEMPTS" ]; do
     echo "==> Running SteamCMD (attempt $ATTEMPT/$MAX_ATTEMPTS)..."
     (cd "$STEAMCMD_DIR" && BOX86_LD_LIBRARY_PATH="linux32" box86 linux32/steamcmd \
-        +@sSteamCmdForcePlatformType linux \
         +force_install_dir "$L4D2_INSTALL_DIR" \
-        +login anonymous \
+        +login "$STEAM_USERNAME" \
         +app_update "$L4D2_APPID" validate \
         +quit)
 
