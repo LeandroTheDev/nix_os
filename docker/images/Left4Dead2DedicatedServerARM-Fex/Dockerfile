@@ -100,12 +100,14 @@ RUN FEXRootFSFetcher -y -x --force-ui=tty --distro-name=ubuntu --distro-version=
 # need. Top them up inside the guest RootFS via FEXBash (its own real apt/dpkg).
 # Run as root (sudo) so the guest apt-get's "are you root" checks pass; -E/env
 # preserve FEX_ROOTFS since sudo resets $HOME and FEX's config lookup is per-user.
-# The stock RootFS is minbase-stripped and doesn't ship gnupg, so apt-key is
-# missing and every repo looks "not signed" to apt. Bootstrap gnupg via one
-# insecure fetch, then do the real update+install with signature checks intact.
+# The guest RootFS's apt-key is broken (its InRelease signature check calls
+# apt-key, which fails to execute), so every repo looks "not signed" to apt.
+# Upgrading gnupg to fix that instead breaks dpkg, since this minimal RootFS
+# is missing directories (e.g. /etc/logcheck) that its postinst expects to
+# exist. Simplest safe fix for this one-off, build-time library fetch: skip
+# authentication entirely rather than repairing it.
 RUN sudo env FEX_ROOTFS="$FEX_ROOTFS" FEXBash -c "apt-get update -o Acquire::AllowInsecureRepositories=true && \
-        apt-get install -y --allow-unauthenticated gnupg && \
-        apt-get update && apt-get install -y \
+        apt-get install -y --allow-unauthenticated \
         libcurl4:i386 \
         libtinfo6:i386 \
         liblzma5:i386 \
