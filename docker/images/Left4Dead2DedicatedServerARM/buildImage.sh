@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-IMAGE_NAME="left4dead2dedicatedserverarm"
+IMAGE_NAME="left4dead2dedicatedserverarm-fex"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 if [ -z "$(docker images -q "$IMAGE_NAME" 2>/dev/null)" ]; then

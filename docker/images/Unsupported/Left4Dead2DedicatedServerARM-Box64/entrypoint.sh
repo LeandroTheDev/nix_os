@@ -24,8 +24,9 @@ if [ ! -f "$STEAMCMD_DIR/linux32/steamcmd" ]; then
     (cd "$STEAMCMD_DIR" && curl -sqL "https://steamcdn-a.akamaihd.net/client/installer/steamcmd_linux.tar.gz" | tar zxvf -)
 fi
 
-# 2. Run SteamCMD through FEX (32-bit x86) to install/update the L4D2 dedicated
-# server. FEX runs it against the RootFS baked into the image at build time.
+# 2. Run SteamCMD through box86 (x86 32bit) to install/update the L4D2
+# dedicated server. box86 runs SteamCMD natively as an ARM 32bit process,
+# more reliable than box64's 32bit compat mode for SteamCMD.
 # Retry a few times — SteamCMD can report success even after failing.
 # Success is judged by presence of srcds_linux, not by exit code.
 
@@ -34,7 +35,7 @@ ATTEMPT=1
 SUCCESS=0
 while [ "$ATTEMPT" -le "$MAX_ATTEMPTS" ]; do
     echo "==> Running SteamCMD (attempt $ATTEMPT/$MAX_ATTEMPTS)..."
-    (cd "$STEAMCMD_DIR" && LD_LIBRARY_PATH="linux32" FEX linux32/steamcmd \
+    (cd "$STEAMCMD_DIR" && BOX86_LD_LIBRARY_PATH="linux32" box86 linux32/steamcmd \
         +force_install_dir "$L4D2_INSTALL_DIR" \
         +login "$STEAM_USERNAME" \
         +app_update "$L4D2_APPID" validate \
@@ -60,16 +61,16 @@ echo "==> Left 4 Dead 2 server ready at $L4D2_INSTALL_DIR"
 mkdir -p "$HOME/.steam/sdk32"
 ln -sf "$L4D2_INSTALL_DIR/bin/steamclient.so" "$HOME/.steam/sdk32/steamclient.so"
 
-# Drop the FEX launcher next to srcds_linux
-cp /opt/start-server-fex.sh "$L4D2_INSTALL_DIR/start-server-fex.sh"
-chmod +x "$L4D2_INSTALL_DIR/start-server-fex.sh"
+# Drop the box86 launcher next to srcds_linux
+cp /opt/start-server-box86.sh "$L4D2_INSTALL_DIR/start-server-box86.sh"
+chmod +x "$L4D2_INSTALL_DIR/start-server-box86.sh"
 
 STARTUP_LOG="/tmp/l4d2-startup.log"
 STARTUP_TIMEOUT="${L4D2_STARTUP_TIMEOUT:-120}"
 
 echo "==> Starting Left 4 Dead 2 server in tmux session '$TMUX_SESSION'..."
 > "$STARTUP_LOG"
-tmux new-session -d -s "$TMUX_SESSION" -c "$L4D2_INSTALL_DIR" "$L4D2_INSTALL_DIR/start-server-fex.sh"
+tmux new-session -d -s "$TMUX_SESSION" -c "$L4D2_INSTALL_DIR" "$L4D2_INSTALL_DIR/start-server-box86.sh"
 tmux pipe-pane -t "$TMUX_SESSION" -o "cat >> $STARTUP_LOG"
 
 # Watchdog: if the startup marker doesn't appear within STARTUP_TIMEOUT seconds

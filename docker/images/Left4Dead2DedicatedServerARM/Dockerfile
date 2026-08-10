@@ -1,96 +1,68 @@
-FROM debian:bookworm AS builder
+# === STAGE 1: BUILDER ===
+FROM arm64v8/ubuntu:25.04 AS builder
 ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update && apt-get install -y \
-    ca-certificates \
-    curl \
     git \
     cmake \
-    make \
-    build-essential \
-    crossbuild-essential-armhf \
-    python3 \
-    && apt-get clean && rm -rf /var/lib/apt/lists/*
+    ninja-build \
+    pkg-config \
+    ccache \
+    clang \
+    llvm \
+    lld \
+    python3 python3-setuptools \
+    squashfs-tools squashfuse \
+    qt6-base-dev qt6-declarative-dev \
+    libc-bin \
+    nasm \
+    curl \
+    sudo \
+    fuse3 \
+    wget && \
+    rm -rf /var/lib/apt/lists/*
 
-RUN git clone https://github.com/ptitSeb/box64.git /tmp/box64 && \
-    mkdir -p /tmp/box64/build && \
-    cd /tmp/box64/build && \
-    cmake .. -DARM_DYNAREC=ON -DCMAKE_BUILD_TYPE=RelWithDebInfo && \
-    make -j$(nproc) && \
-    make install DESTDIR=/box64-install && \
-    rm -rf /tmp/box64
-
-# box86 runs x86 32bit (SteamCMD + srcds_linux) natively as an ARM 32bit
-# (armhf) process. L4D2's srcds_linux is a 32-bit ELF so box86 is used for
-# both SteamCMD and the dedicated server itself.
-RUN git clone https://github.com/ptitSeb/box86.git /tmp/box86 && \
-    mkdir -p /tmp/box86/build && \
-    cd /tmp/box86/build && \
-    cmake .. \
-        -DCMAKE_SYSTEM_NAME=Linux \
-        -DCMAKE_SYSTEM_PROCESSOR=arm \
-        -DCMAKE_C_COMPILER=arm-linux-gnueabihf-gcc \
-        -DCMAKE_CXX_COMPILER=arm-linux-gnueabihf-g++ \
-        -DARM_DYNAREC=ON \
-        -DCMAKE_BUILD_TYPE=RelWithDebInfo && \
-    make -j$(nproc) && \
-    make install DESTDIR=/box86-install && \
-    rm -rf /tmp/box86
+WORKDIR /home/fex
+# Pinned to FEX-2608, same version used by the FexARM image in this repo.
+RUN git clone --recurse-submodules --branch FEX-2608 https://github.com/FEX-Emu/FEX.git && \
+    cd FEX && \
+    mkdir Build && cd Build && \
+    CC=clang CXX=clang++ cmake -DCMAKE_INSTALL_PREFIX=/usr \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DUSE_LINKER=lld \
+    -DENABLE_LTO=True \
+    -DBUILD_TESTS=False -G Ninja .. && \
+    ninja install
 
 # === STAGE 2: RUNNER ===
-FROM debian:bookworm
+FROM arm64v8/ubuntu:25.04
 ENV DEBIAN_FRONTEND=noninteractive
 
 ENV APP_PATH="/home/admin/app"
+ENV FEX_ROOTFS="/home/admin/.local/share/fex-emu/RootFS/Ubuntu_24_04"
 ENV L4D2_MAP="c1m1_hotel"
 ENV L4D2_PORT="27015"
 ENV L4D2_MAXPLAYERS="4"
-# Source Engine library search paths
-ENV BOX86_LD_LIBRARY_PATH=".:bin/:linux32:bin/linux32:/usr/lib/i386-linux-gnu:/lib/i386-linux-gnu"
-ENV BOX64_LD_LIBRARY_PATH=".:bin/:/usr/lib/i386-linux-gnu:/lib/i386-linux-gnu"
 
-RUN dpkg --add-architecture i386 && \
-    dpkg --add-architecture armhf && \
-    apt-get update && apt-get install -y \
+RUN apt-get update && apt-get install -y \
     ca-certificates \
+    libsdl3-0 \
+    libssl3t64 \
+    squashfuse \
+    squashfs-tools \
+    fuse3 \
+    libc-bin \
     curl \
-    libc6 \
-    libstdc++6 \
-    zlib1g \
-    libgcc-s1 \
-    libc6:i386 \
-    libstdc++6:i386 \
-    libncurses6:i386 \
-    libtinfo6:i386 \
-    libgcc-s1:i386 \
-    libcurl4:i386 \
-    libssl3:i386 \
-    zlib1g:i386 \
-    liblzma5:i386 \
-    libsqlite3-0:i386 \
-    libdbus-1-3:i386 \
-    libnuma1:i386 \
-    libudev1:i386 \
-    libbz2-1.0:i386 \
-    libsdl2-2.0-0:i386 \
-    libopenal1:i386 \
-    libglib2.0-0:i386 \
-    libfontconfig1:i386 \
-    libgl1:i386 \
-    libgl1-mesa-dri:i386 \
-    libc6:armhf \
-    libstdc++6:armhf \
-    zlib1g:armhf \
-    iputils-ping \
-    iproute2 \
     sudo \
     tmux \
     vim \
-    && apt-get clean && rm -rf /var/lib/apt/lists/*
+    iputils-ping \
+    iproute2 \
+    binfmt-support && \
+    rm -rf /var/lib/apt/lists/*
 
-COPY --from=builder /box64-install/ /
-COPY --from=builder /box86-install/ /
-RUN ldconfig
+# Copy the finished FEX binaries from the builder stage
+COPY --from=builder /usr/bin/FEX* /usr/bin/
 
 RUN groupadd -f wheel && \
     echo "%wheel ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers && \
@@ -104,11 +76,24 @@ RUN echo "root:root" | chpasswd
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
 
-COPY start-server-box86.sh /opt/start-server-box86.sh
-RUN chmod +x /opt/start-server-box86.sh
+COPY start-server-fex.sh /opt/start-server-fex.sh
+RUN chmod +x /opt/start-server-fex.sh
 
 USER admin
 WORKDIR /home/admin
+
+# Fetch and extract the x86-64 RootFS during build so no FUSE is required at runtime.
+# -x tells FEXRootFSFetcher to call unsquashfs (squashfs-tools must be installed above).
+# We then write Config.json explicitly because non-interactive mode can silently skip it
+# if unsquashfs was previously unavailable and fell back to squashfs-as-is mode.
+RUN FEXRootFSFetcher -y -x --force-ui=tty --distro-name=ubuntu --distro-version=24.04 && \
+    ROOTFS_DIR=$(find "${HOME}/.local/share/fex-emu/RootFS" "${HOME}/.fex-emu/RootFS" \
+                      -maxdepth 1 -mindepth 1 -type d 2>/dev/null | head -1) && \
+    [ -n "$ROOTFS_DIR" ] || { echo "ERROR: RootFS not extracted — check squashfs-tools"; exit 1; } && \
+    mkdir -p "${HOME}/.fex-emu" && \
+    printf '{"Config":{"RootFS":"%s"}}' "$ROOTFS_DIR" > "${HOME}/.fex-emu/Config.json" && \
+    echo "FEX configured: $ROOTFS_DIR"
+
 RUN mkdir -p "$APP_PATH"
 
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
