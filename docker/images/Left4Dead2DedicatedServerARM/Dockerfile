@@ -76,8 +76,8 @@ RUN echo "root:root" | chpasswd
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
 
-COPY start-server-fex.sh /opt/start-server-fex.sh
-RUN chmod +x /opt/start-server-fex.sh
+COPY start-server.sh /opt/start-server.sh
+RUN chmod +x /opt/start-server.sh
 
 USER admin
 WORKDIR /home/admin

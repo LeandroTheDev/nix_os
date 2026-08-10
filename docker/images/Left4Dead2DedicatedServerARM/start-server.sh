@@ -1,8 +1,4 @@
 #!/bin/sh
-# Unlike box86, FEX runs the guest against a real x86 RootFS instead of wrapping
-# host-native libs in place, so the guest's own dynamic linker resolves paths —
-# a plain LD_LIBRARY_PATH (not a BOX86_-prefixed one) is what it reads.
-
 while true; do
     LD_LIBRARY_PATH="$(pwd):$(pwd)/bin:$(pwd)/linux32:$(pwd)/bin/linux32:${LD_LIBRARY_PATH}" \
     FEX ./srcds_linux \

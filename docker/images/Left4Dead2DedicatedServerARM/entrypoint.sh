@@ -61,15 +61,15 @@ mkdir -p "$HOME/.steam/sdk32"
 ln -sf "$L4D2_INSTALL_DIR/bin/steamclient.so" "$HOME/.steam/sdk32/steamclient.so"
 
 # Drop the FEX launcher next to srcds_linux
-cp /opt/start-server-fex.sh "$L4D2_INSTALL_DIR/start-server-fex.sh"
-chmod +x "$L4D2_INSTALL_DIR/start-server-fex.sh"
+cp /opt/start-server.sh "$L4D2_INSTALL_DIR/start-server.sh"
+chmod +x "$L4D2_INSTALL_DIR/start-server.sh"
 
 STARTUP_LOG="/tmp/l4d2-startup.log"
 STARTUP_TIMEOUT="${L4D2_STARTUP_TIMEOUT:-120}"
 
 echo "==> Starting Left 4 Dead 2 server in tmux session '$TMUX_SESSION'..."
 > "$STARTUP_LOG"
-tmux new-session -d -s "$TMUX_SESSION" -c "$L4D2_INSTALL_DIR" "$L4D2_INSTALL_DIR/start-server-fex.sh"
+tmux new-session -d -s "$TMUX_SESSION" -c "$L4D2_INSTALL_DIR" "$L4D2_INSTALL_DIR/start-server.sh"
 tmux pipe-pane -t "$TMUX_SESSION" -o "cat >> $STARTUP_LOG"
 
 # Watchdog: if the startup marker doesn't appear within STARTUP_TIMEOUT seconds
