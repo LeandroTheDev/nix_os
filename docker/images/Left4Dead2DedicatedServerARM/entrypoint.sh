@@ -57,6 +57,10 @@ fi
 
 echo "==> Left 4 Dead 2 server ready at $L4D2_INSTALL_DIR"
 
+# srcds looks for steamclient.so under ~/.steam/sdk32 to talk to Steam/VAC
+mkdir -p "$HOME/.steam/sdk32"
+ln -sf "$L4D2_INSTALL_DIR/bin/steamclient.so" "$HOME/.steam/sdk32/steamclient.so"
+
 # Drop the box86 launcher next to srcds_linux
 cp /opt/start-server-box86.sh "$L4D2_INSTALL_DIR/start-server-box86.sh"
 chmod +x "$L4D2_INSTALL_DIR/start-server-box86.sh"

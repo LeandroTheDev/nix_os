@@ -85,6 +85,7 @@ RUN dpkg --add-architecture i386 && \
     iproute2 \
     sudo \
     tmux \
+    vim \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 COPY --from=builder /box64-install/ /
