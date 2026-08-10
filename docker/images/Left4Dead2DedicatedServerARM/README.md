@@ -10,6 +10,8 @@ Example:
 docker pull ghcr.io/leansbobodev/left4dead2-dedicated-server-arm:sha-????
 ```
 
+> The local image name (used by `buildImage.sh` and `docker-compose.yml`) is `left4dead2dedicatedserverarm`.
+
 # Using the Image
 
 This image uses two modes controlled by `L4D2_MODE`:

@@ -14,7 +14,7 @@ volumes:
   steamcmd-data:
 
 x-game-server: &game-server
-  image: l4d2-arm
+  image: left4dead2dedicatedserverarm
   build: .
   depends_on:
     l4d2-init:
@@ -26,7 +26,7 @@ x-game-server: &game-server
 services:
   # ── Init: installs/updates L4D2 via SteamCMD, then exits ───────────────────
   l4d2-init:
-    image: l4d2-arm
+    image: left4dead2dedicatedserverarm
     build: .
     container_name: l4d2-init
     environment:
