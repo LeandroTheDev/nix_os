@@ -1,0 +1,121 @@
+# L4D2 Dedicated Servers — ARM (FEX)
+#
+# Setup:
+#   1. Copy .env.example to .env and fill in STEAM_USERNAME
+#   2. Build the image:      docker compose build
+#   3. Install L4D2:         docker compose run --rm l4d2-init
+#   4. Start servers:        docker compose up -d
+#
+# Attach to a server console: docker exec -it l4d2-versus tmux attach -t l4d2
+# Update L4D2:                docker compose stop && docker compose run --rm l4d2-init
+
+volumes:
+  l4d2-data:      # shared L4D2 installation (~20 GB, one copy for all servers)
+  steamcmd-data:
+
+x-game-server: &game-server
+  image: l4d2-arm
+  build: .
+  depends_on:
+    l4d2-init:
+      condition: service_completed_successfully
+  volumes:
+    - l4d2-data:/home/admin/app/l4d2server
+  restart: unless-stopped
+
+services:
+  # ── Init: installs/updates L4D2 via SteamCMD, then exits ───────────────────
+  l4d2-init:
+    image: l4d2-arm
+    build: .
+    container_name: l4d2-init
+    environment:
+      L4D2_MODE: init
+      STEAM_USERNAME: ${STEAM_USERNAME}
+    volumes:
+      - l4d2-data:/home/admin/app/l4d2server
+      - steamcmd-data:/home/admin/app/steamcmd
+    restart: "no"
+
+  # ── Versus — port 27015 — CPU 0 ──────────────────────────────────────────────
+  l4d2-versus:
+    <<: *game-server
+    container_name: l4d2-versus
+    cpuset: "0"
+    ports:
+      - "27015:27015/udp"
+      - "27015:27015/tcp"
+    environment:
+      L4D2_PORT: "27015"
+      L4D2_MAXPLAYERS: "8"
+      L4D2_MAP: "c5m1_waterfront versus"
+      L4D2_GAMETYPES: versus
+      L4D2_GAMEMODE: versus
+      L4D2_ARGS: ""   # e.g. +postExecPath cfg/server.cfg -worldRankDatabase sourcerank
+
+  # ── Survival Versus (mutation15) — port 27017 — CPU 1 ───────────────────────
+  l4d2-survivalversus:
+    <<: *game-server
+    container_name: l4d2-survivalversus
+    cpuset: "1"
+    ports:
+      - "27017:27017/udp"
+      - "27017:27017/tcp"
+    environment:
+      L4D2_PORT: "27017"
+      L4D2_MAXPLAYERS: "8"
+      L4D2_MAP: "c5m2_park mutation15"
+      L4D2_GAMETYPES: mutation15
+      L4D2_GAMEMODE: mutation15
+      L4D2_ARGS: ""
+
+  # ── Coop — port 27019 — CPU 2 ────────────────────────────────────────────────
+  # NOTE: l4d2-scavenge uses the same port — run one or the other, not both.
+  l4d2-coop:
+    <<: *game-server
+    container_name: l4d2-coop
+    cpuset: "2"
+    ports:
+      - "27019:27019/udp"
+      - "27019:27019/tcp"
+    environment:
+      L4D2_PORT: "27019"
+      L4D2_MAXPLAYERS: "8"
+      L4D2_MAP: "c5m1_waterfront coop"
+      L4D2_GAMETYPES: coop
+      L4D2_GAMEMODE: coop
+      L4D2_ARGS: ""
+
+  # ── Scavenge — port 27019 — CPU 2 ───────────────────────────────────────────
+  # Start with: docker compose --profile scavenge up -d l4d2-scavenge
+  l4d2-scavenge:
+    <<: *game-server
+    container_name: l4d2-scavenge
+    cpuset: "2"
+    profiles: ["scavenge"]
+    ports:
+      - "27019:27019/udp"
+      - "27019:27019/tcp"
+    environment:
+      L4D2_PORT: "27019"
+      L4D2_MAXPLAYERS: "8"
+      L4D2_MAP: "c8m5_rooftop scavenge"
+      L4D2_GAMETYPES: scavenge
+      L4D2_GAMEMODE: scavenge
+      L4D2_ARGS: ""
+
+  # ── Survival — port 27021 — CPU 3 ───────────────────────────────────────────
+  l4d2-survival:
+    <<: *game-server
+    container_name: l4d2-survival
+    cpuset: "3"
+    ports:
+      - "27021:27021/udp"
+      - "27021:27021/tcp"
+    environment:
+      L4D2_PORT: "27021"
+      L4D2_MAXPLAYERS: "8"
+      L4D2_MAP: "c5m2_park survival"
+      L4D2_GAMETYPES: survival
+      L4D2_GAMEMODE: survival
+      L4D2_ARGS: ""
