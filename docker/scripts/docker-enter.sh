@@ -4,11 +4,11 @@ set -euo pipefail
 mapfile -t names < <(docker ps --format '{{.Names}}')
 
 if [ "${#names[@]}" -eq 0 ]; then
-    echo "Nenhum container em execucao."
+    echo "No running containers."
     exit 1
 fi
 
-echo "Containers em execucao:"
+echo "Running containers:"
 echo
 i=1
 for name in "${names[@]}"; do
@@ -18,16 +18,16 @@ for name in "${names[@]}"; do
 done
 echo
 
-read -rp "Selecione o numero do container: " choice
+read -rp "Select the container number: " choice
 
 if ! [[ "$choice" =~ ^[0-9]+$ ]] || [ "$choice" -lt 1 ] || [ "$choice" -gt "${#names[@]}" ]; then
-    echo "Selecao invalida."
+    echo "Invalid selection."
     exit 1
 fi
 
 target="${names[$((choice-1))]}"
 
-echo "Entrando em '$target'..."
+echo "Entering '$target'..."
 
 if docker exec -it "$target" bash 2>/dev/null; then
     exit 0
