@@ -100,7 +100,14 @@ docker compose --profile scavenge up -d l4d2-scavenge
 | `STEAM_USERNAME` | Steam account used by the init container to download L4D2 | — |
 
 # Compiling
-Use the `buildImage.sh` script and you are good to go.
+Use the `buildImage.sh` script and you are good to go. It walks you through the whole setup interactively:
+
+1. Path to the `docker-compose.yml` to use (defaults to the one next to the script — point it elsewhere if you're running a customized/renamed copy, e.g. on a server with a different project name).
+2. Whether to (re)build the image, if one already exists locally.
+3. **Name of the SteamCMD init service** — defaults to `l4d2-init` (the name used in this repo's `docker-compose.yml`). If your compose file renamed that service (e.g. `left4dead2-init-aionthera` for a multi-instance setup), enter that name here so the script can find it.
+4. Your Steam username, to install/update L4D2 via that init service.
+
+It then starts all the game server services defined in the compose file.
 
 # Final Observations
 - The install volume (`l4d2-data`) is shared across all game mode containers — only one copy of the ~20 GB game files is stored on disk.
