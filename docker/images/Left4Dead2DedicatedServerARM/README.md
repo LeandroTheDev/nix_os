@@ -27,9 +27,10 @@ docker run -it --rm \
   -e STEAM_USERNAME=your_steam_username \
   -v l4d2-data:/home/admin/app/l4d2server \
   -v steamcmd-data:/home/admin/app/steamcmd \
+  -v steam-home:/home/admin/Steam \
   ghcr.io/leansbobodev/left4dead2-dedicated-server-arm:sha-????
 ```
-> Valve requires an authenticated Steam login to download the dedicated server. You will be prompted for your password and Steam Guard code interactively.
+> Valve requires an authenticated Steam login to download the dedicated server. You will be prompted for your password and Steam Guard code interactively the first time. The `steam-home` volume caches that login session, so future re-runs (e.g. to update the server) won't ask again.
 
 2. Run the server:
 ```bash
@@ -70,7 +71,7 @@ docker compose build
 ```bash
 STEAM_USERNAME=your_steam_username docker compose run --rm l4d2-init
 ```
-> Valve requires an authenticated Steam login to download the dedicated server. You will be prompted for your password and Steam Guard code interactively.
+> Valve requires an authenticated Steam login to download the dedicated server. You will be prompted for your password and Steam Guard code interactively the first time. That login session is cached in the `steam-home` volume, so future re-runs (e.g. to update the server) authenticate automatically without a human present.
 
 3. Start all servers:
 ```bash

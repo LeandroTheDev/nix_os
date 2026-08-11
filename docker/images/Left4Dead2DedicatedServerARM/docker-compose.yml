@@ -3,6 +3,7 @@ name: left4dead2dedicatedserverarm
 volumes:
   l4d2-data:      # shared L4D2 installation (~20 GB, one copy for all servers)
   steamcmd-data:
+  steam-home:     # SteamCMD's login session (Steam Guard "remember password"), so init doesn't need a human to re-enter credentials on every run
 
 x-game-server: &game-server
   image: left4dead2dedicatedserverarm
@@ -26,6 +27,7 @@ services:
     volumes:
       - l4d2-data:/home/admin/app/l4d2server
       - steamcmd-data:/home/admin/app/steamcmd
+      - steam-home:/home/admin/Steam
     restart: "no"
 
   # ── Versus — port 27015 — CPU 0 ──────────────────────────────────────────────

@@ -17,7 +17,8 @@ if [ "${L4D2_MODE:-server}" = "init" ]; then
         exit 1
     fi
 
-    mkdir -p "$STEAMCMD_DIR" "$L4D2_INSTALL_DIR"
+    mkdir -p "$STEAMCMD_DIR" "$L4D2_INSTALL_DIR" "$HOME/Steam"
+    sudo chown -R "$(id -u):$(id -g)" "$HOME/Steam"
 
     if [ ! -f "$STEAMCMD_DIR/linux32/steamcmd" ]; then
         echo "==> Downloading SteamCMD..."
