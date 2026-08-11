@@ -13,20 +13,10 @@ dc() {
   docker compose -f "$COMPOSE_FILE" --project-directory "$SCRIPT_DIR" "$@"
 }
 
-if [ -z "$(docker images -q "$IMAGE_NAME" 2>/dev/null)" ]; then
-  echo "Image not found, building..."
-  dc build || { echo "Build failed, aborting."; exit 1; }
-else
-  read -p "Image '$IMAGE_NAME' already exists. Rebuild it? (y/N): " REBUILD_IMAGE
-  if [[ "$REBUILD_IMAGE" =~ ^[Yy]$ ]]; then
-    echo "Rebuilding image..."
-    dc build || { echo "Build failed, aborting."; exit 1; }
-  fi
-fi
-
 # ── Zomboid data folder — external, kept outside the container so it survives
-# rebuilds/recreations. Exported (not just passed to this one call) so any
-# later `docker compose` invocation against this project resolves the same
+# rebuilds/recreations. Exported (not just passed to one call) so every `dc`
+# invocation below — build included, since `docker compose build` still
+# interpolates the whole file, volumes section and all — resolves the same
 # path instead of failing on an unset variable.
 DEFAULT_ZOMBOID_PATH="$HOME/Zomboid"
 read -p "Zomboid data folder path on this host [$DEFAULT_ZOMBOID_PATH]: " ZOMBOID_DATA_PATH
@@ -37,6 +27,17 @@ sudo chown -R 1000:1000 "$ZOMBOID_DATA_PATH"
 
 read -p "RAM for the server, e.g. 2g/4g [2g]: " PZ_MEMORY
 export PZ_MEMORY="${PZ_MEMORY:-2g}"
+
+if [ -z "$(docker images -q "$IMAGE_NAME" 2>/dev/null)" ]; then
+  echo "Image not found, building..."
+  dc build || { echo "Build failed, aborting."; exit 1; }
+else
+  read -p "Image '$IMAGE_NAME' already exists. Rebuild it? (y/N): " REBUILD_IMAGE
+  if [[ "$REBUILD_IMAGE" =~ ^[Yy]$ ]]; then
+    echo "Rebuilding image..."
+    dc build || { echo "Build failed, aborting."; exit 1; }
+  fi
+fi
 
 echo "Starting server..."
 dc up -d || { echo "Failed to start server."; exit 1; }
