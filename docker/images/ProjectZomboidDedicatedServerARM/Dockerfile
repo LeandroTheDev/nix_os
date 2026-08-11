@@ -108,7 +108,7 @@ RUN chmod +x /opt/start-server-box64.sh
 
 USER admin
 WORKDIR /home/admin
-RUN mkdir -p "$APP_PATH"
+RUN mkdir -p "$APP_PATH/pzserver" "$APP_PATH/steamcmd"
 
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 CMD ["/bin/bash"]

@@ -1,0 +1,22 @@
+name: projectzomboiddedicatedserverarm
+
+volumes:
+  pz-data:        # SteamCMD-installed Project Zomboid server files
+  steamcmd-data:
+
+services:
+  pz-server:
+    image: projectzomboiddedicatedserverarm
+    build: .
+    container_name: pz-server
+    network_mode: host   # Project Zomboid's Steam/direct-connect networking expects the host's network stack
+    stop_grace_period: 90s   # saving on shutdown can take ~1 minute, give it room before Docker force-kills
+    environment:
+      PZ_MEMORY: ${PZ_MEMORY:-2g}
+      PZ_STARTUP_TIMEOUT: ${PZ_STARTUP_TIMEOUT:-480}
+      PZ_SHUTDOWN_TIMEOUT: ${PZ_SHUTDOWN_TIMEOUT:-60}
+    volumes:
+      - pz-data:/home/admin/app/pzserver
+      - steamcmd-data:/home/admin/app/steamcmd
+      - ${ZOMBOID_DATA_PATH}:/home/admin/Zomboid   # external — must be set before `docker compose up` (see buildImage.sh)
+    restart: unless-stopped
