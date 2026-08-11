@@ -31,7 +31,7 @@ services:
     container_name: l4d2-init
     environment:
       L4D2_MODE: init
-      STEAM_USERNAME: ${STEAM_USERNAME}
+      STEAM_USERNAME: ${STEAM_USERNAME:-}
     volumes:
       - l4d2-data:/home/admin/app/l4d2server
       - steamcmd-data:/home/admin/app/steamcmd
@@ -119,12 +119,3 @@ services:
       L4D2_GAMETYPES: survival
       L4D2_GAMEMODE: survival
       L4D2_ARGS: ""
-
-  # ── Custom — ad-hoc server used by buildImage.sh ────────────────────────────
-  # Not started by `docker compose up` (profile-gated). Port/map/etc are passed
-  # at runtime via `docker compose run`, so it uses host networking instead of
-  # a fixed `ports:` mapping.
-  left4dead2dedicatedservercompose:
-    <<: *game-server
-    profiles: ["manual"]
-    network_mode: host
