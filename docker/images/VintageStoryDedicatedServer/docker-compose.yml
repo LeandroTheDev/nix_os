@@ -6,10 +6,10 @@ volumes:
 
 services:
   # ── Init: installs/updates VS via vs_updater, then exits ──────────────────
-  vs-init:
+  vintagestory-init:
     image: vintagestorydedicatedserver
     build: .
-    container_name: vs-init
+    container_name: vintagestory-init
     environment:
       VS_MODE: init
     volumes:
@@ -17,11 +17,11 @@ services:
     restart: "no"
 
   # ── Server ─────────────────────────────────────────────────────────────────
-  vs-server:
+  vintagestory:
     image: vintagestorydedicatedserver
-    container_name: vs-server
+    container_name: vintagestory
     depends_on:
-      vs-init:
+      vintagestory-init:
         condition: service_completed_successfully
     ports:
       - "42420:42420/tcp"
