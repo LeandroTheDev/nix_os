@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 IMAGE_NAME="left4dead2dedicatedserverarm"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+L4D2_VOLUME="l4d2-data"
+STEAMCMD_VOLUME="steamcmd-data"
+L4D2_INSTALL_PATH="/home/admin/app/l4d2server"
+STEAMCMD_PATH="/home/admin/app/steamcmd"
 
 if [ -z "$(docker images -q "$IMAGE_NAME" 2>/dev/null)" ]; then
   echo "Image not found, building..."
@@ -34,9 +38,40 @@ elif docker ps -a --format "{{.Names}}" | grep -q "^${CONTAINER_NAME}$"; then
   exit 0
 fi
 
-MOUNTS=()
+# ── Install/update L4D2 via SteamCMD (runs the image in init mode) ─────────────
+if docker run --rm --entrypoint test -v "${L4D2_VOLUME}:${L4D2_INSTALL_PATH}" \
+    "$IMAGE_NAME" -f "${L4D2_INSTALL_PATH}/.ready" 2>/dev/null; then
+  read -p "L4D2 is already installed. Update it now? (y/N): " DO_INIT
+else
+  echo "L4D2 is not installed yet, installation is required."
+  DO_INIT="y"
+fi
 
-read -p "Do you need to mount anything? (y/N): " NEED_MORE_MOUNTS
+if [[ "$DO_INIT" =~ ^[Yy]$ ]]; then
+  read -p "Steam username (must own L4D2): " STEAM_USERNAME
+  while [ -z "$STEAM_USERNAME" ]; do
+    read -p "Username cannot be empty, please enter your Steam username: " STEAM_USERNAME
+  done
+
+  echo "Installing/updating L4D2, this may take a while..."
+  echo "Valve requires an authenticated Steam login — type the password and Steam"
+  echo "Guard code (if asked) directly into the prompt below."
+  docker run -it --rm \
+    -e L4D2_MODE=init \
+    -e STEAM_USERNAME="$STEAM_USERNAME" \
+    -v "${L4D2_VOLUME}:${L4D2_INSTALL_PATH}" \
+    -v "${STEAMCMD_VOLUME}:${STEAMCMD_PATH}" \
+    "$IMAGE_NAME"
+
+  if [ $? -ne 0 ]; then
+    echo "L4D2 installation failed, aborting."
+    exit 1
+  fi
+fi
+
+MOUNTS=(-v "${L4D2_VOLUME}:${L4D2_INSTALL_PATH}")
+
+read -p "Do you need to mount anything else? (y/N): " NEED_MORE_MOUNTS
 while [[ "$NEED_MORE_MOUNTS" =~ ^[Yy]$ ]]; do
   read -p "  Path on your device: " HOST_PATH
   read -p "  Path inside the container (relative to /home/admin/): " CONTAINER_SUBPATH
@@ -47,43 +82,35 @@ done
 read -p "Server port [27015]: " L4D2_PORT
 L4D2_PORT="${L4D2_PORT:-27015}"
 
-read -p "Max players [4]: " L4D2_MAXPLAYERS
-L4D2_MAXPLAYERS="${L4D2_MAXPLAYERS:-4}"
+read -p "Max players [8]: " L4D2_MAXPLAYERS
+L4D2_MAXPLAYERS="${L4D2_MAXPLAYERS:-8}"
 
 read -p "Starting map [c1m1_hotel]: " L4D2_MAP
 L4D2_MAP="${L4D2_MAP:-c1m1_hotel}"
 
-# Valve now requires an authenticated Steam login to download the L4D2
-# dedicated server depot (anonymous login fails with "Invalid platform").
-# Only the username goes through this script/env var — the password and any
-# Steam Guard code are typed directly into SteamCMD's own interactive prompt
-# via `docker attach` below, so they never touch this script, the shell
-# history, or `docker inspect`. That login then gets cached inside the
-# container itself, so it isn't needed again on later `docker start`.
-read -p "Steam username (must own L4D2): " STEAM_USERNAME
-while [ -z "$STEAM_USERNAME" ]; do
-  read -p "Username cannot be empty, please enter your Steam username: " STEAM_USERNAME
-done
+read -p "Game types (sv_gametypes, optional): " L4D2_GAMETYPES
+read -p "Game mode (mp_gamemode, optional): " L4D2_GAMEMODE
+read -p "Extra srcds_linux arguments (optional): " L4D2_ARGS
 
 echo "Creating container..."
 docker run -dit \
   --pull=never \
   --network host \
   --name "$CONTAINER_NAME" \
-  -e STEAM_USERNAME="$STEAM_USERNAME" \
   -e L4D2_PORT="$L4D2_PORT" \
   -e L4D2_MAXPLAYERS="$L4D2_MAXPLAYERS" \
   -e L4D2_MAP="$L4D2_MAP" \
+  -e L4D2_GAMETYPES="$L4D2_GAMETYPES" \
+  -e L4D2_GAMEMODE="$L4D2_GAMEMODE" \
+  -e L4D2_ARGS="$L4D2_ARGS" \
   "${MOUNTS[@]}" \
   "$IMAGE_NAME"
 
 if [ $? -eq 0 ]; then
   echo "Container '$CONTAINER_NAME' created successfully."
-  echo "Attaching for first-time Steam login — type the password and Steam Guard"
-  echo "code (if asked) directly into the prompt below. Once the server is up,"
-  echo "detach with Ctrl+P then Ctrl+Q (this does NOT stop the server)."
   sleep 2
-  docker attach "$CONTAINER_NAME"
+  echo "Following logs (Ctrl+C to detach, container keeps running)..."
+  docker logs -f "$CONTAINER_NAME"
   echo "To enter the container, run:"
   echo "  docker exec -it $CONTAINER_NAME bash"
   echo "To attach to the server console (tmux), run:"
