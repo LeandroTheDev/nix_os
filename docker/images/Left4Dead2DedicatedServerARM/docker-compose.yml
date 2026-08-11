@@ -119,3 +119,12 @@ services:
       L4D2_GAMETYPES: survival
       L4D2_GAMEMODE: survival
       L4D2_ARGS: ""
+
+  # ── Custom — ad-hoc server used by buildImage.sh ────────────────────────────
+  # Not started by `docker compose up` (profile-gated). Port/map/etc are passed
+  # at runtime via `docker compose run`, so it uses host networking instead of
+  # a fixed `ports:` mapping.
+  left4dead2dedicatedservercompose:
+    <<: *game-server
+    profiles: ["manual"]
+    network_mode: host

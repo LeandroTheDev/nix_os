@@ -1,19 +1,27 @@
 #!/usr/bin/env bash
 IMAGE_NAME="left4dead2dedicatedserverarm"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-L4D2_VOLUME="l4d2-data"
-STEAMCMD_VOLUME="steamcmd-data"
+DEFAULT_COMPOSE_FILE="$SCRIPT_DIR/docker-compose.yml"
 L4D2_INSTALL_PATH="/home/admin/app/l4d2server"
-STEAMCMD_PATH="/home/admin/app/steamcmd"
+
+read -p "Docker compose file path [$DEFAULT_COMPOSE_FILE]: " COMPOSE_FILE
+COMPOSE_FILE="${COMPOSE_FILE:-$DEFAULT_COMPOSE_FILE}"
+while [ ! -f "$COMPOSE_FILE" ]; do
+  read -p "File not found at '$COMPOSE_FILE'. Enter a valid docker-compose file path: " COMPOSE_FILE
+done
+
+dc() {
+  docker compose -f "$COMPOSE_FILE" "$@"
+}
 
 if [ -z "$(docker images -q "$IMAGE_NAME" 2>/dev/null)" ]; then
   echo "Image not found, building..."
-  docker build -t "$IMAGE_NAME" "$SCRIPT_DIR" || { echo "Build failed, aborting."; exit 1; }
+  dc build || { echo "Build failed, aborting."; exit 1; }
 else
   read -p "Image '$IMAGE_NAME' already exists. Rebuild it? (y/N): " REBUILD_IMAGE
   if [[ "$REBUILD_IMAGE" =~ ^[Yy]$ ]]; then
     echo "Rebuilding image..."
-    docker build -t "$IMAGE_NAME" "$SCRIPT_DIR" || { echo "Build failed, aborting."; exit 1; }
+    dc build || { echo "Build failed, aborting."; exit 1; }
   fi
 fi
 
@@ -38,9 +46,8 @@ elif docker ps -a --format "{{.Names}}" | grep -q "^${CONTAINER_NAME}$"; then
   exit 0
 fi
 
-# ── Install/update L4D2 via SteamCMD (runs the image in init mode) ─────────────
-if docker run --rm --entrypoint test -v "${L4D2_VOLUME}:${L4D2_INSTALL_PATH}" \
-    "$IMAGE_NAME" -f "${L4D2_INSTALL_PATH}/.ready" 2>/dev/null; then
+# ── Install/update L4D2 via SteamCMD (runs l4d2-init from the compose file) ────
+if dc run --rm --entrypoint test l4d2-init -f "${L4D2_INSTALL_PATH}/.ready" 2>/dev/null; then
   read -p "L4D2 is already installed. Update it now? (y/N): " DO_INIT
 else
   echo "L4D2 is not installed yet, installation is required."
@@ -56,12 +63,7 @@ if [[ "$DO_INIT" =~ ^[Yy]$ ]]; then
   echo "Installing/updating L4D2, this may take a while..."
   echo "Valve requires an authenticated Steam login — type the password and Steam"
   echo "Guard code (if asked) directly into the prompt below."
-  docker run -it --rm \
-    -e L4D2_MODE=init \
-    -e STEAM_USERNAME="$STEAM_USERNAME" \
-    -v "${L4D2_VOLUME}:${L4D2_INSTALL_PATH}" \
-    -v "${STEAMCMD_VOLUME}:${STEAMCMD_PATH}" \
-    "$IMAGE_NAME"
+  dc run --rm -e STEAM_USERNAME="$STEAM_USERNAME" l4d2-init
 
   if [ $? -ne 0 ]; then
     echo "L4D2 installation failed, aborting."
@@ -69,7 +71,7 @@ if [[ "$DO_INIT" =~ ^[Yy]$ ]]; then
   fi
 fi
 
-MOUNTS=(-v "${L4D2_VOLUME}:${L4D2_INSTALL_PATH}")
+MOUNTS=()
 
 read -p "Do you need to mount anything else? (y/N): " NEED_MORE_MOUNTS
 while [[ "$NEED_MORE_MOUNTS" =~ ^[Yy]$ ]]; do
@@ -93,9 +95,8 @@ read -p "Game mode (mp_gamemode, optional): " L4D2_GAMEMODE
 read -p "Extra srcds_linux arguments (optional): " L4D2_ARGS
 
 echo "Creating container..."
-docker run -dit \
+dc run -d \
   --pull=never \
-  --network host \
   --name "$CONTAINER_NAME" \
   -e L4D2_PORT="$L4D2_PORT" \
   -e L4D2_MAXPLAYERS="$L4D2_MAXPLAYERS" \
@@ -104,7 +105,7 @@ docker run -dit \
   -e L4D2_GAMEMODE="$L4D2_GAMEMODE" \
   -e L4D2_ARGS="$L4D2_ARGS" \
   "${MOUNTS[@]}" \
-  "$IMAGE_NAME"
+  left4dead2dedicatedservercompose
 
 if [ $? -eq 0 ]; then
   echo "Container '$CONTAINER_NAME' created successfully."
