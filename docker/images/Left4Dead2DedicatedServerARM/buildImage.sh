@@ -25,11 +25,15 @@ else
 fi
 
 # ── Install/update L4D2 via SteamCMD ────────────────────────────────────────
+DEFAULT_INIT_SERVICE="l4d2-init"
+read -p "SteamCMD init service name [$DEFAULT_INIT_SERVICE]: " INIT_SERVICE
+INIT_SERVICE="${INIT_SERVICE:-$DEFAULT_INIT_SERVICE}"
+
 # STEAM_USERNAME is exported (not just passed with -e to this one call) so
-# that if `docker compose up` below needs to run l4d2-init itself to satisfy
-# depends_on (e.g. because this run's container already exited and got
-# removed), it still resolves ${STEAM_USERNAME} correctly from the compose
-# file instead of defaulting to blank and failing.
+# that if `docker compose up` below needs to run the init service itself to
+# satisfy depends_on (e.g. because this run's container already exited and
+# got removed), it still resolves ${STEAM_USERNAME} correctly from the
+# compose file instead of defaulting to blank and failing.
 read -p "Steam username (must own L4D2): " STEAM_USERNAME
 while [ -z "$STEAM_USERNAME" ]; do
   read -p "Username cannot be empty, please enter your Steam username: " STEAM_USERNAME
@@ -39,7 +43,7 @@ export STEAM_USERNAME
 echo "Installing/updating L4D2, this may take a while..."
 echo "Valve requires an authenticated Steam login — type the password and Steam"
 echo "Guard code (if asked) directly into the prompt below."
-dc run --rm l4d2-init || { echo "L4D2 installation failed, aborting."; exit 1; }
+dc run --rm "$INIT_SERVICE" || { echo "L4D2 installation failed, aborting."; exit 1; }
 
 # ── Start the game servers defined in the compose file ──────────────────────
 echo "Starting servers..."

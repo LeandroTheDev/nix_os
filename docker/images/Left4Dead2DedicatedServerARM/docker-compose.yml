@@ -6,8 +6,7 @@ volumes:
   steam-home:     # SteamCMD's login session (Steam Guard "remember password"), so init doesn't need a human to re-enter credentials on every run
 
 x-game-server: &game-server
-  image: left4dead2dedicatedserverarm
-  build: .
+  image: left4dead2dedicatedserverarm   # built once by l4d2-init below; reused here without a redundant build
   depends_on:
     l4d2-init:
       condition: service_completed_successfully
