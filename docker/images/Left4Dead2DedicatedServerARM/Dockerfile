@@ -94,7 +94,7 @@ RUN FEXRootFSFetcher -y -x --force-ui=tty --distro-name=ubuntu --distro-version=
     printf '{"Config":{"RootFS":"%s"}}' "$ROOTFS_DIR" > "${HOME}/.fex-emu/Config.json" && \
     echo "FEX configured: $ROOTFS_DIR"
 
-RUN mkdir -p "$APP_PATH"
+RUN mkdir -p "$APP_PATH/l4d2server" "$APP_PATH/steamcmd"
 
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 CMD ["/bin/bash"]
