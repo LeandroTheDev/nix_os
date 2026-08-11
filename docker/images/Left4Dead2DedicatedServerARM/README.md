@@ -61,22 +61,18 @@ docker logs -f l4d2-versus
 
 The included `docker-compose.yml` runs five game modes simultaneously, each pinned to its own CPU core, sharing a single L4D2 installation on disk.
 
-1. Copy `.env.example` to `.env` and fill in your Steam username:
-```bash
-cp .env.example .env
-```
-
-2. Build the image:
+1. Build the image:
 ```bash
 docker compose build
 ```
 
-3. Install L4D2 (runs once, then exits):
+2. Install L4D2 (runs once, then exits). `STEAM_USERNAME` must be set in the environment — it is not prompted for interactively, only your password/Steam Guard code is:
 ```bash
-docker compose run --rm l4d2-init
+STEAM_USERNAME=your_steam_username docker compose run --rm l4d2-init
 ```
+> Valve requires an authenticated Steam login to download the dedicated server. You will be prompted for your password and Steam Guard code interactively.
 
-4. Start all servers:
+3. Start all servers:
 ```bash
 docker compose up -d
 ```

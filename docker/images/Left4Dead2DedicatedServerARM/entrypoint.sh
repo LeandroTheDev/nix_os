@@ -32,7 +32,7 @@ if [ "${L4D2_MODE:-server}" = "init" ]; then
         (cd "$STEAMCMD_DIR" && LD_LIBRARY_PATH="linux32" FEX linux32/steamcmd \
             +force_install_dir "$L4D2_INSTALL_DIR" \
             +login "$STEAM_USERNAME" \
-            +app_update "$L4D2_APPID" validate \
+            +app_update "$L4D2_APPID" \
             +quit)
 
         if [ -f "$L4D2_INSTALL_DIR/srcds_linux" ]; then

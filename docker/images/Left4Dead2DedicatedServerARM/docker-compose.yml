@@ -1,13 +1,4 @@
-# L4D2 Dedicated Servers — ARM (FEX)
-#
-# Setup:
-#   1. Copy .env.example to .env and fill in STEAM_USERNAME
-#   2. Build the image:      docker compose build
-#   3. Install L4D2:         docker compose run --rm l4d2-init
-#   4. Start servers:        docker compose up -d
-#
-# Attach to a server console: docker exec -it l4d2-versus tmux attach -t l4d2
-# Update L4D2:                docker compose stop && docker compose run --rm l4d2-init
+name: left4dead2dedicatedserverarm
 
 volumes:
   l4d2-data:      # shared L4D2 installation (~20 GB, one copy for all servers)
@@ -69,8 +60,7 @@ services:
       L4D2_GAMEMODE: mutation15
       L4D2_ARGS: ""
 
-  # ── Coop — port 27019 — CPU 2 ────────────────────────────────────────────────
-  # NOTE: l4d2-scavenge uses the same port — run one or the other, not both.
+  # ── Coop — port 27019 — CPU 2 ────────────────────────────────────────────────  
   l4d2-coop:
     <<: *game-server
     container_name: l4d2-coop
@@ -86,34 +76,33 @@ services:
       L4D2_GAMEMODE: coop
       L4D2_ARGS: ""
 
-  # ── Scavenge — port 27019 — CPU 2 ───────────────────────────────────────────
-  # Start with: docker compose --profile scavenge up -d l4d2-scavenge
+  # ── Scavenge — port 27021 — CPU 2 ───────────────────────────────────────────
   l4d2-scavenge:
     <<: *game-server
     container_name: l4d2-scavenge
     cpuset: "2"
     profiles: ["scavenge"]
     ports:
-      - "27019:27019/udp"
-      - "27019:27019/tcp"
+      - "27021:27021/udp"
+      - "27021:27021/tcp"
     environment:
-      L4D2_PORT: "27019"
+      L4D2_PORT: "27021"
       L4D2_MAXPLAYERS: "8"
       L4D2_MAP: "c8m5_rooftop scavenge"
       L4D2_GAMETYPES: scavenge
       L4D2_GAMEMODE: scavenge
       L4D2_ARGS: ""
 
-  # ── Survival — port 27021 — CPU 3 ───────────────────────────────────────────
+  # ── Survival — port 27023 — CPU 3 ───────────────────────────────────────────
   l4d2-survival:
     <<: *game-server
     container_name: l4d2-survival
     cpuset: "3"
     ports:
-      - "27021:27021/udp"
-      - "27021:27021/tcp"
+      - "27023:27023/udp"
+      - "27023:27023/tcp"
     environment:
-      L4D2_PORT: "27021"
+      L4D2_PORT: "27023"
       L4D2_MAXPLAYERS: "8"
       L4D2_MAP: "c5m2_park survival"
       L4D2_GAMETYPES: survival
