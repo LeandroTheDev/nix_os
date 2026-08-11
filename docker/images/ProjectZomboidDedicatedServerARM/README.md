@@ -82,6 +82,24 @@ docker exec -it pz-server tmux attach -t zomboid
 | `PZ_SHUTDOWN_TIMEOUT` | Seconds to wait for graceful shutdown before force-kill | `60` |
 | `ZOMBOID_DATA_PATH` | *(Compose only)* Host path bind-mounted to `/home/admin/Zomboid` — external, must be set before `docker compose up` | — |
 
+# Removing the Image
+
+Deleting the image alone does **not** free the disk space used by the game files — the Docker-managed volumes (SteamCMD and server install) must be removed explicitly.
+
+## With Docker Compose
+
+```bash
+docker compose down --volumes --rmi all
+```
+
+`--volumes` removes the Docker-managed volumes (SteamCMD, game install). `--rmi all` removes the local image.
+
+> The bind-mounted `Zomboid` data folder (world saves, config, admin password) is **not** touched by Docker. To delete it, remove it manually:
+> ```bash
+> rm -rf "$ZOMBOID_DATA_PATH"
+> ```
+
+
 # Compiling
 - Use the `buildImage.sh` script and you are good to go — it drives the compose file above interactively: which compose file to use, whether to (re)build the image, where the external `Zomboid` data folder lives on the host (creating it and fixing ownership for you), and how much RAM to allocate, then starts the server.
 

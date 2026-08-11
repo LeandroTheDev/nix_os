@@ -99,6 +99,19 @@ docker compose --profile scavenge up -d l4d2-scavenge
 | `L4D2_SHUTDOWN_TIMEOUT` | Seconds to wait for graceful shutdown before force-kill | `30` |
 | `STEAM_USERNAME` | Steam account used by the init container to download L4D2 | — |
 
+# Removing the Image
+
+Deleting the image alone does **not** free the disk space used by the game files (~20 GB) — the Docker-managed volumes (`l4d2-data`, `steamcmd-data`, `steam-home`) must be removed explicitly.
+
+## With Docker Compose
+
+```bash
+docker compose down --volumes --rmi all
+```
+
+`--volumes` removes all Docker-managed volumes (game install, SteamCMD, Steam session cache). `--rmi all` removes the local image.
+
+
 # Compiling
 Use the `buildImage.sh` script and you are good to go. It walks you through the whole setup interactively:
 
