@@ -11,7 +11,7 @@ while [ ! -f "$COMPOSE_FILE" ]; do
 done
 
 dc() {
-  docker compose -f "$COMPOSE_FILE" "$@"
+  docker compose -f "$COMPOSE_FILE" --project-directory "$SCRIPT_DIR" "$@"
 }
 
 if [ -z "$(docker images -q "$IMAGE_NAME" 2>/dev/null)" ]; then
