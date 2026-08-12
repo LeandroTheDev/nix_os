@@ -1,12 +1,12 @@
 name: left4dead2dedicatedserverarm
 
 volumes:
-  l4d2-data:      # shared L4D2 installation (~20 GB, one copy for all servers)
+  l4d2-data:
   steamcmd-data:
-  steam-home:     # SteamCMD's login session (Steam Guard "remember password"), so init doesn't need a human to re-enter credentials on every run
+  steam-home:
 
 x-game-server: &game-server
-  image: left4dead2dedicatedserverarm   # built once by l4d2-init below; reused here without a redundant build
+  image: left4dead2dedicatedserverarm
   depends_on:
     l4d2-init:
       condition: service_completed_successfully
@@ -15,7 +15,6 @@ x-game-server: &game-server
   restart: unless-stopped
 
 services:
-  # ── Init: installs/updates L4D2 via SteamCMD, then exits ───────────────────
   l4d2-init:
     image: left4dead2dedicatedserverarm
     build: .
@@ -29,11 +28,9 @@ services:
       - steam-home:/home/admin/Steam
     restart: "no"
 
-  # ── Versus — port 27015 — CPU 0 ──────────────────────────────────────────────
   l4d2-versus:
     <<: *game-server
     container_name: l4d2-versus
-    cpuset: "0"
     ports:
       - "27015:27015/udp"
       - "27015:27015/tcp"
@@ -43,13 +40,11 @@ services:
       L4D2_MAP: "c5m1_waterfront versus"
       L4D2_GAMETYPES: versus
       L4D2_GAMEMODE: versus
-      L4D2_ARGS: ""   # e.g. +postExecPath cfg/server.cfg -worldRankDatabase sourcerank
-
-  # ── Survival Versus (mutation15) — port 27017 — CPU 1 ───────────────────────
+      L4D2_ARGS: ""
+  
   l4d2-survivalversus:
     <<: *game-server
-    container_name: l4d2-survivalversus
-    cpuset: "1"
+    container_name: l4d2-survivalversus    
     ports:
       - "27017:27017/udp"
       - "27017:27017/tcp"
@@ -61,11 +56,9 @@ services:
       L4D2_GAMEMODE: mutation15
       L4D2_ARGS: ""
 
-  # ── Coop — port 27019 — CPU 2 ────────────────────────────────────────────────  
   l4d2-coop:
     <<: *game-server
-    container_name: l4d2-coop
-    cpuset: "2"
+    container_name: l4d2-coop    
     ports:
       - "27019:27019/udp"
       - "27019:27019/tcp"
@@ -77,12 +70,9 @@ services:
       L4D2_GAMEMODE: coop
       L4D2_ARGS: ""
 
-  # ── Scavenge — port 27021 — CPU 2 ───────────────────────────────────────────
   l4d2-scavenge:
     <<: *game-server
     container_name: l4d2-scavenge
-    cpuset: "2"
-    profiles: ["scavenge"]
     ports:
       - "27021:27021/udp"
       - "27021:27021/tcp"
@@ -94,11 +84,9 @@ services:
       L4D2_GAMEMODE: scavenge
       L4D2_ARGS: ""
 
-  # ── Survival — port 27023 — CPU 3 ───────────────────────────────────────────
   l4d2-survival:
     <<: *game-server
     container_name: l4d2-survival
-    cpuset: "3"
     ports:
       - "27023:27023/udp"
       - "27023:27023/tcp"

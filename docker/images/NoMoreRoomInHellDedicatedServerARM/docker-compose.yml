@@ -1,11 +1,11 @@
 name: nomoreroominhelldedicatedserverarm
 
 volumes:
-  nmrih-data:     # shared NMRiH installation, one copy for all servers
+  nmrih-data:
   steamcmd-data:
 
 x-game-server: &game-server
-  image: nomoreroominhelldedicatedserverarm   # built once by nmrih-init below; reused here without a redundant build
+  image: nomoreroominhelldedicatedserverarm
   depends_on:
     nmrih-init:
       condition: service_completed_successfully
@@ -14,7 +14,6 @@ x-game-server: &game-server
   restart: unless-stopped
 
 services:
-  # ── Init: installs/updates NMRiH via SteamCMD (anonymous login), then exits ─
   nmrih-init:
     image: nomoreroominhelldedicatedserverarm
     build: .
@@ -29,7 +28,6 @@ services:
   nmrih-broadway:
     <<: *game-server
     container_name: nmrih-broadway
-    cpuset: "0"
     ports:
       - "27015:27015/udp"
       - "27015:27015/tcp"
@@ -54,7 +52,6 @@ services:
   nmrih-precinct:
     <<: *game-server
     container_name: nmrih-precinct
-    profiles: ["precinct"]
     ports:
       - "27019:27019/udp"
       - "27019:27019/tcp"

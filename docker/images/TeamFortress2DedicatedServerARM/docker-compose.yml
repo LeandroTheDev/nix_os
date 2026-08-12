@@ -1,0 +1,62 @@
+name: teamfortress2dedicatedserverarm
+
+volumes:
+  tf2-data:
+  steamcmd-data:
+
+x-game-server: &game-server
+  image: teamfortress2dedicatedserverarm
+  depends_on:
+    tf2-init:
+      condition: service_completed_successfully
+  volumes:
+    - tf2-data:/home/admin/app/tf2server
+  restart: unless-stopped
+
+services:
+  tf2-init:
+    image: teamfortress2dedicatedserverarm
+    build: .
+    container_name: tf2-init
+    environment:
+      TF2_MODE: init
+    volumes:
+      - tf2-data:/home/admin/app/tf2server
+      - steamcmd-data:/home/admin/app/steamcmd
+    restart: "no"
+
+  tf2-2fort:
+    <<: *game-server
+    container_name: tf2-2fort
+    ports:
+      - "27015:27015/udp"
+      - "27015:27015/tcp"
+    environment:
+      TF2_PORT: "27015"
+      TF2_MAXPLAYERS: "24"
+      TF2_MAP: "ctf_2fort"
+      TF2_ARGS: ""
+
+  tf2-dustbowl:
+    <<: *game-server
+    container_name: tf2-dustbowl
+    ports:
+      - "27017:27017/udp"
+      - "27017:27017/tcp"
+    environment:
+      TF2_PORT: "27017"
+      TF2_MAXPLAYERS: "24"
+      TF2_MAP: "cp_dustbowl"
+      TF2_ARGS: ""
+  
+  tf2-hightower:
+    <<: *game-server
+    container_name: tf2-hightower
+    ports:
+      - "27019:27019/udp"
+      - "27019:27019/tcp"
+    environment:
+      TF2_PORT: "27019"
+      TF2_MAXPLAYERS: "24"
+      TF2_MAP: "plr_hightower"
+      TF2_ARGS: ""
