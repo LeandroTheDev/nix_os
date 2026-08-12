@@ -1,0 +1,65 @@
+name: nomoreroominhelldedicatedserverarm
+
+volumes:
+  nmrih-data:     # shared NMRiH installation, one copy for all servers
+  steamcmd-data:
+
+x-game-server: &game-server
+  image: nomoreroominhelldedicatedserverarm   # built once by nmrih-init below; reused here without a redundant build
+  depends_on:
+    nmrih-init:
+      condition: service_completed_successfully
+  volumes:
+    - nmrih-data:/home/admin/app/nmrihserver
+  restart: unless-stopped
+
+services:
+  # ── Init: installs/updates NMRiH via SteamCMD (anonymous login), then exits ─
+  nmrih-init:
+    image: nomoreroominhelldedicatedserverarm
+    build: .
+    container_name: nmrih-init
+    environment:
+      NMRIH_MODE: init
+    volumes:
+      - nmrih-data:/home/admin/app/nmrihserver
+      - steamcmd-data:/home/admin/app/steamcmd
+    restart: "no"
+  
+  nmrih-broadway:
+    <<: *game-server
+    container_name: nmrih-broadway
+    cpuset: "0"
+    ports:
+      - "27015:27015/udp"
+      - "27015:27015/tcp"
+    environment:
+      NMRIH_PORT: "27015"
+      NMRIH_MAXPLAYERS: "8"
+      NMRIH_MAP: "nmo_broadway"
+      NMRIH_ARGS: ""
+
+  nmrih-militia:
+    <<: *game-server
+    container_name: nmrih-militia
+    ports:
+      - "27017:27017/udp"
+      - "27017:27017/tcp"
+    environment:
+      NMRIH_PORT: "27017"
+      NMRIH_MAXPLAYERS: "8"
+      NMRIH_MAP: "nmo_militia"
+      NMRIH_ARGS: ""
+
+  nmrih-precinct:
+    <<: *game-server
+    container_name: nmrih-precinct
+    profiles: ["precinct"]
+    ports:
+      - "27019:27019/udp"
+      - "27019:27019/tcp"
+    environment:
+      NMRIH_PORT: "27019"
+      NMRIH_MAXPLAYERS: "8"
+      NMRIH_MAP: "nmo_precinct"
+      NMRIH_ARGS: ""
