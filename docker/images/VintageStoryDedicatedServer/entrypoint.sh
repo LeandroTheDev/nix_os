@@ -1,0 +1,87 @@
+#!/usr/bin/env bash
+# VS_MODE=init   — downloads/updates the server via vs_updater and exits.
+# VS_MODE=server — waits for installation and starts the server (default).
+set -uo pipefail
+
+APP_PATH="${APP_PATH:-/home/admin/app}"
+VS_INSTALL_DIR="$APP_PATH/vs"
+READY_MARKER="$VS_INSTALL_DIR/.ready"
+TMUX_SESSION="vs"
+
+# ── init ─────────────────────────────────────────────────────────────────────
+if [ "${VS_MODE:-server}" = "init" ]; then
+    mkdir -p "$VS_INSTALL_DIR"
+
+    echo "==> Running vs_updater to install/update Vintage Story server..."
+    vintagestory_updater \
+        --working-path "$VS_INSTALL_DIR" \
+        --game-type server \
+        --arch arm64 \
+        --no-pre \
+        --ignore-mod-update || { echo "ERROR: updater failed"; exit 1; }
+
+    if [ ! -f "$VS_INSTALL_DIR/VintagestoryServer.dll" ]; then
+        echo "ERROR: VintagestoryServer.dll not found after update." >&2
+        exit 1
+    fi
+
+    touch "$READY_MARKER"
+    echo "==> Installation complete."
+    exit 0
+fi
+
+# ── server ───────────────────────────────────────────────────────────────────
+echo "==> Waiting for VS installation at $VS_INSTALL_DIR..."
+until [ -f "$READY_MARKER" ]; do
+    sleep 5
+done
+echo "==> Installation ready."
+
+cp /opt/start-server.sh "$VS_INSTALL_DIR/start-server.sh"
+chmod +x "$VS_INSTALL_DIR/start-server.sh"
+
+STARTUP_LOG="/tmp/vs-startup.log"
+STARTUP_TIMEOUT="${VS_STARTUP_TIMEOUT:-180}"
+
+echo "==> Starting Vintage Story server on port ${VS_PORT:-42420} in tmux session '$TMUX_SESSION'..."
+> "$STARTUP_LOG"
+tmux new-session -d -s "$TMUX_SESSION" -c "$VS_INSTALL_DIR" "$VS_INSTALL_DIR/start-server.sh"
+tmux pipe-pane -t "$TMUX_SESSION" -o "cat >> $STARTUP_LOG"
+
+(
+    ELAPSED=0
+    while [ "$ELAPSED" -lt "$STARTUP_TIMEOUT" ]; do
+        if grep -qiE "server started|now listening|ready to accept" "$STARTUP_LOG" 2>/dev/null; then
+            echo "==> Watchdog: server started after ${ELAPSED}s."
+            tmux pipe-pane -t "$TMUX_SESSION" 2>/dev/null
+            exit 0
+        fi
+        sleep 10
+        ELAPSED=$((ELAPSED + 10))
+    done
+    echo "==> Watchdog: server did not report ready within ${STARTUP_TIMEOUT}s — killing session to trigger restart..."
+    tmux kill-session -t "$TMUX_SESSION"
+) &
+
+SHUTDOWN_TIMEOUT="${VS_SHUTDOWN_TIMEOUT:-30}"
+
+shutdown_server() {
+    echo "==> Shutdown requested, sending 'stop' to server console..."
+    tmux send-keys -t "$TMUX_SESSION" "" Enter
+    sleep 1
+    tmux send-keys -t "$TMUX_SESSION" "stop" Enter
+    ELAPSED=0
+    while tmux has-session -t "$TMUX_SESSION" 2>/dev/null && [ "$ELAPSED" -lt "$SHUTDOWN_TIMEOUT" ]; do
+        sleep 2
+        ELAPSED=$((ELAPSED + 2))
+    done
+    tmux kill-session -t "$TMUX_SESSION" 2>/dev/null
+    exit 0
+}
+
+trap shutdown_server SIGTERM SIGINT
+
+# Attach to server console: docker exec -it vs-server tmux attach -t vs
+while tmux has-session -t "$TMUX_SESSION" 2>/dev/null; do
+    sleep 5 & wait $!
+done

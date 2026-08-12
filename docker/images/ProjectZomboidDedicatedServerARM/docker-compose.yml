@@ -8,7 +8,7 @@ services:
   pz-server:
     image: projectzomboiddedicatedserverarm
     build: .
-    container_name: pz-server
+    container_name: projectzomboidedicatedserver-1
     network_mode: host   # Project Zomboid's Steam/direct-connect networking expects the host's network stack
     stop_grace_period: 90s   # saving on shutdown can take ~1 minute, give it room before Docker force-kills
     environment:

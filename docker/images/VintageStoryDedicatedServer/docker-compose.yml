@@ -1,0 +1,34 @@
+name: vintagestory
+
+volumes:
+  vs-install:     # VS game files (~300 MB, shared between init and server)
+  vs-serverdata:  # World data, configs, mods, backups
+
+services:
+  # ── Init: installs/updates VS via vs_updater, then exits ──────────────────
+  vintagestory-init:
+    image: vintagestorydedicatedserver
+    build: .
+    container_name: vintagestory-init
+    environment:
+      VS_MODE: init
+    volumes:
+      - vs-install:/home/admin/app/vs
+    restart: "no"
+
+  # ── Server ─────────────────────────────────────────────────────────────────
+  vintagestory:
+    image: vintagestorydedicatedserver
+    container_name: vintagestory
+    depends_on:
+      vintagestory-init:
+        condition: service_completed_successfully
+    ports:
+      - "42420:42420/tcp"
+      - "42420:42420/udp"
+    environment:
+      VS_ARGS: ""   # e.g. --addModPath /serverdata/Mods
+    volumes:
+      - vs-install:/home/admin/app/vs
+      - vs-serverdata:/serverdata
+    restart: unless-stopped
