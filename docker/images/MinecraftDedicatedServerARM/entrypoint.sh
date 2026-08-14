@@ -8,7 +8,8 @@ APP_PATH="${APP_PATH:-/home/admin/app}"
 PAPER_INSTALL_DIR="$APP_PATH/paper"
 READY_MARKER="$PAPER_INSTALL_DIR/.ready"
 TMUX_SESSION="mc"
-PAPER_API="https://api.papermc.io/v2/projects/paper"
+PAPER_API="https://fill.papermc.io/v3/projects/paper"
+PAPER_USER_AGENT="nix_os-minecraft-dedicated-server-arm/1.0"
 GEYSER_SPIGOT_URL="https://download.geysermc.org/v2/projects/geyser/versions/latest/builds/latest/downloads/spigot"
 FLOODGATE_SPIGOT_URL="https://download.geysermc.org/v2/projects/floodgate/versions/latest/builds/latest/downloads/spigot"
 
@@ -16,21 +17,42 @@ FLOODGATE_SPIGOT_URL="https://download.geysermc.org/v2/projects/floodgate/versio
 if [ "${MC_MODE:-server}" = "init" ]; then
     mkdir -p "$PAPER_INSTALL_DIR"
 
+    paper_curl() {
+        curl -fsSL -H "User-Agent: $PAPER_USER_AGENT" "$@"
+    }
+
     MC_VERSION="${MC_VERSION:-latest}"
     if [ "$MC_VERSION" = "latest" ]; then
         echo "==> Resolving latest Minecraft version from PaperMC..."
-        MC_VERSION="$(curl -fsSL "$PAPER_API" | grep -oE '"versions":\[[^]]*\]' | grep -oE '"[0-9][^"]*"' | tail -n1 | tr -d '"')"
-        [ -n "$MC_VERSION" ] || { echo "ERROR: could not resolve latest Minecraft version." >&2; exit 1; }
+        MC_VERSION="$(paper_curl "$PAPER_API" | jq -r '[.versions | to_entries[0].value[] | select(test("-pre|-rc") | not)] | .[0]')"
+        [ -n "$MC_VERSION" ] && [ "$MC_VERSION" != "null" ] || { echo "ERROR: could not resolve latest Minecraft version." >&2; exit 1; }
     fi
     echo "==> Using Minecraft version $MC_VERSION"
 
-    echo "==> Resolving latest Paper build for $MC_VERSION..."
-    BUILD="$(curl -fsSL "$PAPER_API/versions/$MC_VERSION/builds" | grep -oE '"build":[0-9]+' | grep -oE '[0-9]+' | tail -n1)"
-    [ -n "$BUILD" ] || { echo "ERROR: could not resolve a Paper build for version $MC_VERSION." >&2; exit 1; }
-    echo "==> Using Paper build $BUILD"
+    echo "==> Resolving latest stable Paper build for $MC_VERSION..."
+    BUILD="$(paper_curl "$PAPER_API/versions/$MC_VERSION/builds" | jq -r 'map(select(.channel == "STABLE")) | .[0] | .id')"
 
-    JAR_NAME="paper-$MC_VERSION-$BUILD.jar"
-    DOWNLOAD_URL="$PAPER_API/versions/$MC_VERSION/builds/$BUILD/downloads/$JAR_NAME"
+    if [ -z "$BUILD" ] || [ "$BUILD" = "null" ]; then
+        echo "==> No stable build for $MC_VERSION, searching for latest version with a stable build..."
+        VERSIONS="$(paper_curl "$PAPER_API" | jq -r '.versions | to_entries[] | .value[]' | sort -V -r)"
+        for VERSION in $VERSIONS; do
+            VERSION_BUILDS="$(paper_curl "$PAPER_API/versions/$VERSION/builds")"
+            STABLE_ID="$(echo "$VERSION_BUILDS" | jq -r 'map(select(.channel == "STABLE")) | .[0] | .id')"
+            if [ -n "$STABLE_ID" ] && [ "$STABLE_ID" != "null" ]; then
+                MC_VERSION="$VERSION"
+                BUILD="$STABLE_ID"
+                echo "==> Found stable build for version $VERSION (build $BUILD)"
+                break
+            fi
+        done
+    fi
+
+    [ -n "$BUILD" ] && [ "$BUILD" != "null" ] || { echo "ERROR: could not resolve a stable Paper build for any version." >&2; exit 1; }
+    echo "==> Using Minecraft $MC_VERSION, Paper build $BUILD"
+
+    BUILDS_RESPONSE="$(paper_curl "$PAPER_API/versions/$MC_VERSION/builds")"
+    DOWNLOAD_URL="$(echo "$BUILDS_RESPONSE" | jq -r 'map(select(.channel == "STABLE")) | .[0] | .downloads."server:default".url')"
+    [ -n "$DOWNLOAD_URL" ] && [ "$DOWNLOAD_URL" != "null" ] || { echo "ERROR: could not resolve a download URL for $MC_VERSION build $BUILD." >&2; exit 1; }
 
     echo "==> Downloading $DOWNLOAD_URL..."
     curl -fsSL "$DOWNLOAD_URL" -o "$PAPER_INSTALL_DIR/paper.jar" || { echo "ERROR: download failed"; exit 1; }

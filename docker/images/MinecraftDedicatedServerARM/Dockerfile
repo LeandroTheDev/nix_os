@@ -6,6 +6,7 @@ ENV APP_PATH="/home/admin/app"
 RUN apt-get update && apt-get install -y \
     ca-certificates \
     curl \
+    jq \
     tmux \
     vim \
     openjdk-21-jre-headless \
