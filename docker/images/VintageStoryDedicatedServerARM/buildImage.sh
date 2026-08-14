@@ -32,10 +32,9 @@ INIT_SERVICE="${INIT_SERVICE:-$DEFAULT_INIT_SERVICE}"
 echo "Installing/updating Vintage Story server, this may take a while..."
 dc run --rm "$INIT_SERVICE" || { echo "VS installation failed, aborting."; exit 1; }
 
-# ── Start the server ──────────────────────────────────────────────────────────
-echo "Starting server..."
-dc up -d || { echo "Failed to start server."; exit 1; }
-
-dc ps
-echo "Attach to server console: docker exec -it vs-server tmux attach -t vs"
+echo "Build complete. This script does not start the server automatically."
+echo "To start it, run:"
+echo "  docker compose -f \"$COMPOSE_FILE\" --project-directory \"$SCRIPT_DIR\" up -d"
+echo "Then attach to the server console with:"
+echo "  docker exec -it vs-server tmux attach -t vs"
 echo "  (Ctrl+B then D to detach without stopping the server)"

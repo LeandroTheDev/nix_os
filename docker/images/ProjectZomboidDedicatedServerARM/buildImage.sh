@@ -39,9 +39,9 @@ else
   fi
 fi
 
-echo "Starting server..."
-dc up -d || { echo "Failed to start server."; exit 1; }
-
-dc ps
-echo "Attach to the server console: docker exec -it <container> tmux attach -t zomboid"
+echo "Build complete. This script does not start the server automatically."
+echo "To start it (this also installs/updates PZ via SteamCMD on first run), run:"
+echo "  ZOMBOID_DATA_PATH=\"$ZOMBOID_DATA_PATH\" PZ_MEMORY=\"$PZ_MEMORY\" docker compose -f \"$COMPOSE_FILE\" --project-directory \"$SCRIPT_DIR\" up -d"
+echo "Then attach to the server console with:"
+echo "  docker exec -it <container> tmux attach -t zomboid"
 echo "  (Ctrl+B then D to detach without stopping the server)"

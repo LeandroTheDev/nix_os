@@ -34,10 +34,9 @@ INIT_SERVICE="${INIT_SERVICE:-$DEFAULT_INIT_SERVICE}"
 echo "Installing/updating TF2, this may take a while..."
 dc run --rm "$INIT_SERVICE" || { echo "TF2 installation failed, aborting."; exit 1; }
 
-# ── Start the game servers defined in the compose file ──────────────────────
-echo "Starting servers..."
-dc up -d || { echo "Failed to start servers."; exit 1; }
-
-dc ps
-echo "Attach to a server console: docker exec -it <container> tmux attach -t tf2"
+echo "Build complete. This script does not start the servers automatically."
+echo "To start them, run:"
+echo "  docker compose -f \"$COMPOSE_FILE\" --project-directory \"$SCRIPT_DIR\" up -d"
+echo "Then attach to a server console with:"
+echo "  docker exec -it <container> tmux attach -t tf2"
 echo "  (Ctrl+B then D to detach without stopping the server)"

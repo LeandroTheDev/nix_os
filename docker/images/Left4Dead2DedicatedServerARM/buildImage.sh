@@ -29,26 +29,23 @@ DEFAULT_INIT_SERVICE="l4d2-init"
 read -p "SteamCMD init service name [$DEFAULT_INIT_SERVICE]: " INIT_SERVICE
 INIT_SERVICE="${INIT_SERVICE:-$DEFAULT_INIT_SERVICE}"
 
-# STEAM_USERNAME is exported (not just passed with -e to this one call) so
-# that if `docker compose up` below needs to run the init service itself to
-# satisfy depends_on (e.g. because this run's container already exited and
-# got removed), it still resolves ${STEAM_USERNAME} correctly from the
-# compose file instead of defaulting to blank and failing.
 read -p "Steam username (must own L4D2): " STEAM_USERNAME
 while [ -z "$STEAM_USERNAME" ]; do
   read -p "Username cannot be empty, please enter your Steam username: " STEAM_USERNAME
 done
-export STEAM_USERNAME
 
-echo "Installing/updating L4D2, this may take a while..."
-echo "Valve requires an authenticated Steam login — type the password and Steam"
-echo "Guard code (if asked) directly into the prompt below."
-dc run --rm "$INIT_SERVICE" || { echo "L4D2 installation failed, aborting."; exit 1; }
-
-# ── Start the game servers defined in the compose file ──────────────────────
-echo "Starting servers..."
-dc up -d || { echo "Failed to start servers."; exit 1; }
-
-dc ps
-echo "Attach to a server console: docker exec -it <container> tmux attach -t l4d2"
+# Valve requires an authenticated Steam login to download the L4D2 dedicated
+# server depot, and the password/Steam Guard code prompts need a real
+# interactive terminal — so this script never runs the init or the servers
+# for you. Run the commands below yourself.
+echo ""
+echo "This script does not download or start anything automatically."
+echo "L4D2 requires an authenticated Steam login, so run the init container yourself:"
+echo "  STEAM_USERNAME=$STEAM_USERNAME docker compose -f \"$COMPOSE_FILE\" --project-directory \"$SCRIPT_DIR\" run --rm $INIT_SERVICE"
+echo "Type your Steam password and Guard code (if asked) directly into that prompt."
+echo ""
+echo "Once it finishes successfully, start the game servers with:"
+echo "  docker compose -f \"$COMPOSE_FILE\" --project-directory \"$SCRIPT_DIR\" up -d"
+echo "Then attach to a server console with:"
+echo "  docker exec -it <container> tmux attach -t l4d2"
 echo "  (Ctrl+B then D to detach without stopping the server)"
