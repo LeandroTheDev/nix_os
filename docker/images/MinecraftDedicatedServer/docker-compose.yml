@@ -1,0 +1,39 @@
+name: minecraft
+
+volumes:
+  mc-install:     # Paper server jar (~50 MB, shared between init and server)
+  mc-serverdata:  # World data, server.properties, plugins, logs
+
+services:
+  # ── Init: resolves the latest Paper build and downloads it, then exits ─────
+  minecraft-init:
+    image: minecraftdedicatedserver
+    build: .
+    container_name: minecraft-init
+    environment:
+      MC_MODE: init
+      MC_VERSION: ""     # e.g. "1.21.1", empty/"latest" resolves the newest Minecraft version
+      MC_GEYSER: "true"  # downloads latest Geyser-Spigot + floodgate-spigot into /serverdata/plugins
+    volumes:
+      - mc-install:/home/admin/app/paper
+      - mc-serverdata:/serverdata
+    restart: "no"
+
+  # ── Server ───────────────────────────────────────────────────────────────────
+  minecraft:
+    image: minecraftdedicatedserver
+    container_name: minecraft
+    depends_on:
+      minecraft-init:
+        condition: service_completed_successfully
+    ports:
+      - "25565:25565/tcp"
+      - "19132:19132/udp"  # Geyser (Bedrock/RakNet) listener
+    environment:
+      MC_EULA: "true"        # required: https://aka.ms/MinecraftEULA
+      MC_JAVA_ARGS: ""       # e.g. "-Xms2G -Xmx4G"
+      MC_ARGS: ""            # e.g. extra paper.jar arguments
+    volumes:
+      - mc-install:/home/admin/app/paper
+      - mc-serverdata:/serverdata
+    restart: unless-stopped

@@ -1,0 +1,126 @@
+#!/usr/bin/env bash
+# MC_MODE=init   — resolves MC_VERSION against the PaperMC API and downloads paper.jar
+#                  (and, if MC_GEYSER=true, the latest Geyser + Floodgate plugin builds), then exits.
+# MC_MODE=server — waits for installation, accepts the EULA and starts the server (default).
+set -uo pipefail
+
+APP_PATH="${APP_PATH:-/home/admin/app}"
+PAPER_INSTALL_DIR="$APP_PATH/paper"
+READY_MARKER="$PAPER_INSTALL_DIR/.ready"
+TMUX_SESSION="mc"
+PAPER_API="https://api.papermc.io/v2/projects/paper"
+GEYSER_SPIGOT_URL="https://download.geysermc.org/v2/projects/geyser/versions/latest/builds/latest/downloads/spigot"
+FLOODGATE_SPIGOT_URL="https://download.geysermc.org/v2/projects/floodgate/versions/latest/builds/latest/downloads/spigot"
+
+# ── init ─────────────────────────────────────────────────────────────────────
+if [ "${MC_MODE:-server}" = "init" ]; then
+    mkdir -p "$PAPER_INSTALL_DIR"
+
+    MC_VERSION="${MC_VERSION:-latest}"
+    if [ "$MC_VERSION" = "latest" ]; then
+        echo "==> Resolving latest Minecraft version from PaperMC..."
+        MC_VERSION="$(curl -fsSL "$PAPER_API" | grep -oE '"versions":\[[^]]*\]' | grep -oE '"[0-9][^"]*"' | tail -n1 | tr -d '"')"
+        [ -n "$MC_VERSION" ] || { echo "ERROR: could not resolve latest Minecraft version." >&2; exit 1; }
+    fi
+    echo "==> Using Minecraft version $MC_VERSION"
+
+    echo "==> Resolving latest Paper build for $MC_VERSION..."
+    BUILD="$(curl -fsSL "$PAPER_API/versions/$MC_VERSION/builds" | grep -oE '"build":[0-9]+' | grep -oE '[0-9]+' | tail -n1)"
+    [ -n "$BUILD" ] || { echo "ERROR: could not resolve a Paper build for version $MC_VERSION." >&2; exit 1; }
+    echo "==> Using Paper build $BUILD"
+
+    JAR_NAME="paper-$MC_VERSION-$BUILD.jar"
+    DOWNLOAD_URL="$PAPER_API/versions/$MC_VERSION/builds/$BUILD/downloads/$JAR_NAME"
+
+    echo "==> Downloading $DOWNLOAD_URL..."
+    curl -fsSL "$DOWNLOAD_URL" -o "$PAPER_INSTALL_DIR/paper.jar" || { echo "ERROR: download failed"; exit 1; }
+
+    if [ ! -s "$PAPER_INSTALL_DIR/paper.jar" ]; then
+        echo "ERROR: paper.jar not found after download." >&2
+        exit 1
+    fi
+
+    if [ "${MC_GEYSER:-false}" = "true" ]; then
+        mkdir -p /serverdata/plugins
+
+        echo "==> Downloading latest Geyser (Spigot) build..."
+        curl -fsSL "$GEYSER_SPIGOT_URL" -o /serverdata/plugins/Geyser-Spigot.jar || { echo "ERROR: Geyser download failed"; exit 1; }
+
+        echo "==> Downloading latest Floodgate (Spigot) build..."
+        curl -fsSL "$FLOODGATE_SPIGOT_URL" -o /serverdata/plugins/floodgate-spigot.jar || { echo "ERROR: Floodgate download failed"; exit 1; }
+
+        [ -s /serverdata/plugins/Geyser-Spigot.jar ] && [ -s /serverdata/plugins/floodgate-spigot.jar ] || {
+            echo "ERROR: Geyser/Floodgate jar missing after download." >&2
+            exit 1
+        }
+    fi
+
+    touch "$READY_MARKER"
+    echo "==> Installation complete."
+    exit 0
+fi
+
+# ── server ───────────────────────────────────────────────────────────────────
+echo "==> Waiting for Paper installation at $PAPER_INSTALL_DIR..."
+until [ -f "$READY_MARKER" ]; do
+    sleep 5
+done
+echo "==> Installation ready."
+
+mkdir -p /serverdata
+
+if [ "${MC_EULA:-false}" != "true" ]; then
+    echo "ERROR: You must accept the Minecraft EULA to run this server." >&2
+    echo "        Set MC_EULA=true (see https://aka.ms/MinecraftEULA) and restart." >&2
+    exit 1
+fi
+echo "eula=true" > /serverdata/eula.txt
+
+cp /opt/start-server.sh "$PAPER_INSTALL_DIR/start-server.sh"
+chmod +x "$PAPER_INSTALL_DIR/start-server.sh"
+
+STARTUP_LOG="/tmp/mc-startup.log"
+STARTUP_TIMEOUT="${MC_STARTUP_TIMEOUT:-180}"
+
+echo "==> Starting Minecraft (Paper) server on port ${MC_PORT:-25565} in tmux session '$TMUX_SESSION'..."
+> "$STARTUP_LOG"
+tmux new-session -d -s "$TMUX_SESSION" -c /serverdata "$PAPER_INSTALL_DIR/start-server.sh"
+tmux pipe-pane -t "$TMUX_SESSION" -o "cat >> $STARTUP_LOG"
+
+(
+    ELAPSED=0
+    while [ "$ELAPSED" -lt "$STARTUP_TIMEOUT" ]; do
+        if grep -qiE 'Done \([0-9.]+s\)! For help' "$STARTUP_LOG" 2>/dev/null; then
+            echo "==> Watchdog: server started after ${ELAPSED}s."
+            tmux pipe-pane -t "$TMUX_SESSION" 2>/dev/null
+            exit 0
+        fi
+        sleep 10
+        ELAPSED=$((ELAPSED + 10))
+    done
+    echo "==> Watchdog: server did not report ready within ${STARTUP_TIMEOUT}s — killing session to trigger restart..."
+    tmux kill-session -t "$TMUX_SESSION"
+) &
+
+SHUTDOWN_TIMEOUT="${MC_SHUTDOWN_TIMEOUT:-30}"
+
+shutdown_server() {
+    echo "==> Shutdown requested, sending 'stop' to server console..."
+    tmux send-keys -t "$TMUX_SESSION" "" Enter
+    sleep 1
+    tmux send-keys -t "$TMUX_SESSION" "stop" Enter
+    ELAPSED=0
+    while tmux has-session -t "$TMUX_SESSION" 2>/dev/null && [ "$ELAPSED" -lt "$SHUTDOWN_TIMEOUT" ]; do
+        sleep 2
+        ELAPSED=$((ELAPSED + 2))
+    done
+    tmux kill-session -t "$TMUX_SESSION" 2>/dev/null
+    exit 0
+}
+
+trap shutdown_server SIGTERM SIGINT
+
+# Attach to server console: docker exec -it minecraft tmux attach -t mc
+while tmux has-session -t "$TMUX_SESSION" 2>/dev/null; do
+    sleep 5 & wait $!
+done
