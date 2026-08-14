@@ -17,8 +17,8 @@ RUN apt-get update && apt-get install -y \
 RUN groupadd -f wheel && \
     echo "%wheel ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers && \
     useradd -m -s /bin/bash -G wheel admin && \
-    mkdir -p "$APP_PATH" && \
-    chown -R admin:admin /home/admin
+    mkdir -p "$APP_PATH" /serverdata && \
+    chown -R admin:admin /home/admin /serverdata
 
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
