@@ -7,7 +7,7 @@ volumes:
 services:
   # ── Init: installs/updates VS via vs_updater, then exits ──────────────────
   vintagestory-init:
-    image: vintagestorydedicatedserver
+    image: vintagestorydedicatedserverarm
     build: .
     container_name: vintagestory-init
     environment:
@@ -18,7 +18,7 @@ services:
 
   # ── Server ─────────────────────────────────────────────────────────────────
   vintagestory:
-    image: vintagestorydedicatedserver
+    image: vintagestorydedicatedserverarm
     container_name: vintagestory
     depends_on:
       vintagestory-init:

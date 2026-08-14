@@ -4,11 +4,11 @@ on:
   push:
     branches: [ "main" ]
     paths:
-      - "docker/images/MinecraftDedicatedServer/**"
+      - "docker/images/MinecraftDedicatedServerARM/**"
   pull_request:
     branches: [ "main" ]
     paths:
-      - "docker/images/MinecraftDedicatedServer/**"
+      - "docker/images/MinecraftDedicatedServerARM/**"
   workflow_dispatch:
 
 env:
@@ -53,7 +53,7 @@ jobs:
       - name: Build and push
         uses: docker/build-push-action@v6
         with:
-          context: docker/images/MinecraftDedicatedServer
+          context: docker/images/MinecraftDedicatedServerARM
           platforms: linux/arm64
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}

@@ -7,7 +7,7 @@ volumes:
 services:
   # ── Init: resolves the latest Paper build and downloads it, then exits ─────
   minecraft-init:
-    image: minecraftdedicatedserver
+    image: minecraftdedicatedserverarm
     build: .
     container_name: minecraft-init
     environment:
@@ -21,7 +21,7 @@ services:
 
   # ── Server ───────────────────────────────────────────────────────────────────
   minecraft:
-    image: minecraftdedicatedserver
+    image: minecraftdedicatedserverarm
     container_name: minecraft
     depends_on:
       minecraft-init:

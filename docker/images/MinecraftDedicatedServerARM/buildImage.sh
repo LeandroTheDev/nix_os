@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-IMAGE_NAME="vintagestorydedicatedserver"
+IMAGE_NAME="minecraftdedicatedserverarm"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 DEFAULT_COMPOSE_FILE="$SCRIPT_DIR/docker-compose.yml"
 
@@ -24,18 +24,18 @@ else
   fi
 fi
 
-# ── Install/update VS via vs_updater ─────────────────────────────────────────
-DEFAULT_INIT_SERVICE="vs-init"
+# ── Download/update Paper via the PaperMC API ────────────────────────────────
+DEFAULT_INIT_SERVICE="minecraft-init"
 read -p "Init service name [$DEFAULT_INIT_SERVICE]: " INIT_SERVICE
 INIT_SERVICE="${INIT_SERVICE:-$DEFAULT_INIT_SERVICE}"
 
-echo "Installing/updating Vintage Story server, this may take a while..."
-dc run --rm "$INIT_SERVICE" || { echo "VS installation failed, aborting."; exit 1; }
+echo "Downloading Minecraft (Paper) server, this may take a while..."
+dc run --rm "$INIT_SERVICE" || { echo "Paper download failed, aborting."; exit 1; }
 
 # ── Start the server ──────────────────────────────────────────────────────────
 echo "Starting server..."
 dc up -d || { echo "Failed to start server."; exit 1; }
 
 dc ps
-echo "Attach to server console: docker exec -it vs-server tmux attach -t vs"
+echo "Attach to server console: docker exec -it minecraft tmux attach -t mc"
 echo "  (Ctrl+B then D to detach without stopping the server)"
