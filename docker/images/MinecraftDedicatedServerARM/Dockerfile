@@ -1,4 +1,4 @@
-FROM arm64v8/ubuntu:25.04
+FROM arm64v8/ubuntu:24.04
 ENV DEBIAN_FRONTEND=noninteractive
 
 ENV APP_PATH="/home/admin/app"
@@ -9,7 +9,7 @@ RUN apt-get update && apt-get install -y \
     jq \
     tmux \
     vim \
-    openjdk-21-jre-headless \
+    openjdk-25-jre-headless \
     iputils-ping \
     iproute2 && \
     rm -rf /var/lib/apt/lists/*
