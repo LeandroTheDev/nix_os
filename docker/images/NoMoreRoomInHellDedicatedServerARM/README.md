@@ -6,11 +6,11 @@ require a Steam account — the init container logs in to SteamCMD anonymously.
 
 # Downloading the Image
 Get the latest pull command at:
-https://github.com/LeansBoboDev/nix_os/pkgs/container/no-more-room-in-hell-dedicated-server-arm
+https://github.com/LeansBoboDev/nix_os/pkgs/container/nomoreroominhell-dedicated-server-arm
 
 Example:
 ```bash
-docker pull ghcr.io/leansbobodev/no-more-room-in-hell-dedicated-server-arm:sha-????
+docker pull ghcr.io/leansbobodev/nomoreroominhell-dedicated-server-arm:sha-????
 ```
 
 > The local image name (used by `buildImage.sh` and `docker-compose.yml`) is `nomoreroominhelldedicatedserverarm`.
@@ -29,7 +29,7 @@ docker run -it --rm \
   -e NMRIH_MODE=init \
   -v nmrih-data:/home/admin/app/nmrihserver \
   -v steamcmd-data:/home/admin/app/steamcmd \
-  ghcr.io/leansbobodev/no-more-room-in-hell-dedicated-server-arm:sha-????
+  ghcr.io/leansbobodev/nomoreroominhell-dedicated-server-arm:sha-????
 ```
 
 2. Run the server:
@@ -42,7 +42,7 @@ docker run -dit \
   -p 27015:27015/udp \
   -p 27015:27015/tcp \
   -v nmrih-data:/home/admin/app/nmrihserver \
-  ghcr.io/leansbobodev/no-more-room-in-hell-dedicated-server-arm:sha-????
+  ghcr.io/leansbobodev/nomoreroominhell-dedicated-server-arm:sha-????
 ```
 
 3. Attach to the server console:

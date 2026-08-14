@@ -6,11 +6,11 @@ require a Steam account — the init container logs in to SteamCMD anonymously.
 
 # Downloading the Image
 Get the latest pull command at:
-https://github.com/LeansBoboDev/nix_os/pkgs/container/team-fortress-2-dedicated-server-arm
+https://github.com/LeansBoboDev/nix_os/pkgs/container/teamfortress2-dedicated-server-arm
 
 Example:
 ```bash
-docker pull ghcr.io/leansbobodev/team-fortress-2-dedicated-server-arm:sha-????
+docker pull ghcr.io/leansbobodev/teamfortress2-dedicated-server-arm:sha-????
 ```
 
 > The local image name (used by `buildImage.sh` and `docker-compose.yml`) is `teamfortress2dedicatedserverarm`.
@@ -29,7 +29,7 @@ docker run -it --rm \
   -e TF2_MODE=init \
   -v tf2-data:/home/admin/app/tf2server \
   -v steamcmd-data:/home/admin/app/steamcmd \
-  ghcr.io/leansbobodev/team-fortress-2-dedicated-server-arm:sha-????
+  ghcr.io/leansbobodev/teamfortress2-dedicated-server-arm:sha-????
 ```
 
 2. Run the server:
@@ -42,7 +42,7 @@ docker run -dit \
   -p 27015:27015/udp \
   -p 27015:27015/tcp \
   -v tf2-data:/home/admin/app/tf2server \
-  ghcr.io/leansbobodev/team-fortress-2-dedicated-server-arm:sha-????
+  ghcr.io/leansbobodev/teamfortress2-dedicated-server-arm:sha-????
 ```
 
 3. Attach to the server console:
