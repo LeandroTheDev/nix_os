@@ -7,8 +7,10 @@ RUN apt-get update && apt-get install -y \
     ca-certificates \
     curl \
     jq \
+    sudo \
     tmux \
     vim \
+    wget \
     openjdk-25-jre-headless \
     iputils-ping \
     iproute2 && \
