@@ -30,6 +30,11 @@ while true; do
         echo "==> Server exited cleanly (exit 0), not restarting."
         break
     fi
+    if [ "$EXIT_CODE" -eq 142 ]; then
+        echo "==> Server crashed (exit 142 probably timeout, the server is overloaded?), restarting in 60 seconds..."
+        sleep 60
+        continue
+    fi
     echo "==> Server crashed (exit $EXIT_CODE), restarting in 5 seconds..."
     sleep 5
 done
