@@ -69,7 +69,7 @@ shutdown_server() {
     echo "==> Shutdown requested, sending 'stop' to server console..."
     tmux send-keys -t "$TMUX_SESSION" "" Enter
     sleep 1
-    tmux send-keys -t "$TMUX_SESSION" "stop" Enter
+    tmux send-keys -t "$TMUX_SESSION" "/stop" Enter
     ELAPSED=0
     while tmux has-session -t "$TMUX_SESSION" 2>/dev/null && [ "$ELAPSED" -lt "$SHUTDOWN_TIMEOUT" ]; do
         sleep 2
