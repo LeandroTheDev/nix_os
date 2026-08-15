@@ -40,28 +40,8 @@ echo "==> Installation ready."
 cp /opt/start-server.sh "$VS_INSTALL_DIR/start-server.sh"
 chmod +x "$VS_INSTALL_DIR/start-server.sh"
 
-STARTUP_LOG="/tmp/vs-startup.log"
-STARTUP_TIMEOUT="${VS_STARTUP_TIMEOUT:-180}"
-
 echo "==> Starting Vintage Story server on port ${VS_PORT:-42420} in tmux session '$TMUX_SESSION'..."
-> "$STARTUP_LOG"
 tmux new-session -d -s "$TMUX_SESSION" -c "$VS_INSTALL_DIR" "$VS_INSTALL_DIR/start-server.sh"
-tmux pipe-pane -t "$TMUX_SESSION" -o "cat >> $STARTUP_LOG"
-
-(
-    ELAPSED=0
-    while [ "$ELAPSED" -lt "$STARTUP_TIMEOUT" ]; do
-        if grep -qiE "server started|now listening|ready to accept" "$STARTUP_LOG" 2>/dev/null; then
-            echo "==> Watchdog: server started after ${ELAPSED}s."
-            tmux pipe-pane -t "$TMUX_SESSION" 2>/dev/null
-            exit 0
-        fi
-        sleep 10
-        ELAPSED=$((ELAPSED + 10))
-    done
-    echo "==> Watchdog: server did not report ready within ${STARTUP_TIMEOUT}s — killing session to trigger restart..."
-    tmux kill-session -t "$TMUX_SESSION"
-) &
 
 SHUTDOWN_TIMEOUT="${VS_SHUTDOWN_TIMEOUT:-30}"
 
