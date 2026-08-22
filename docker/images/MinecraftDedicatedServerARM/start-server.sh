@@ -4,26 +4,13 @@
 
 cd /serverdata
 
-SERVER_PID=""
-STOPPING=false
-
-handle_term() {
-    STOPPING=true
-    [ -n "$SERVER_PID" ] && kill -TERM "$SERVER_PID" 2>/dev/null
-}
-
-trap handle_term TERM
-
 while true; do
     java ${MINECRAFT_JAVA_ARGS:--Xms1G -Xmx2G} -jar /home/admin/app/paper/paper.jar \
         --nogui \
-        ${MINECRAFT_ARGS:-} &
-    SERVER_PID=$!
-    wait $SERVER_PID
+        ${MINECRAFT_ARGS:-}
     rc=$?
-    SERVER_PID=""
 
-    if $STOPPING || [ "$rc" -eq 0 ]; then
+    if [ "$rc" -eq 0 ]; then
         echo "==> Server exited cleanly (exit $rc), not restarting."
         break
     fi
