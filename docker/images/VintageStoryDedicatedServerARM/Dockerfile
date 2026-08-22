@@ -12,7 +12,8 @@ RUN apt-get update && apt-get install -y \
     dotnet-runtime-10.0 \
     fontconfig \
     iputils-ping \
-    iproute2 && \
+    iproute2 \
+    unzip && \
     rm -rf /var/lib/apt/lists/*
 
 RUN groupadd -f wheel && \
