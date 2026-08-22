@@ -1,13 +1,13 @@
 #!/bin/sh
-# MC_JAVA_ARGS - JVM flags (heap size, GC, etc), applied before -jar
-# MC_ARGS      - extra arguments passed to paper.jar
+# MINECRAFT_JAVA_ARGS - JVM flags (heap size, GC, etc), applied before -jar
+# MINECRAFT_ARGS      - extra arguments passed to paper.jar
 
 cd /serverdata
 
 while true; do
-    java ${MC_JAVA_ARGS:--Xms1G -Xmx2G} -jar /home/admin/app/paper/paper.jar \
+    java ${MINECRAFT_JAVA_ARGS:--Xms1G -Xmx2G} -jar /home/admin/app/paper/paper.jar \
         --nogui \
-        ${MC_ARGS:-}
+        ${MINECRAFT_ARGS:-}
 
     rc=$?
     if [ "$rc" -eq 0 ]; then

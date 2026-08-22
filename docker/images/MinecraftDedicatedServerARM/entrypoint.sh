@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# MC_MODE=init   — resolves MC_VERSION against the PaperMC API and downloads paper.jar
-#                  (and, if MC_GEYSER=true, the latest Geyser + Floodgate plugin builds), then exits.
-# MC_MODE=server — waits for installation, accepts the EULA and starts the server (default).
+# MINECRAFT_MODE=init   — resolves MINECRAFT_VERSION against the PaperMC API and downloads paper.jar
+#                  (and, if MINECRAFT_GEYSER=true, the latest Geyser + Floodgate plugin builds), then exits.
+# MINECRAFT_MODE=server — waits for installation, accepts the EULA and starts the server (default).
 set -uo pipefail
 
 APP_PATH="${APP_PATH:-/home/admin/app}"
@@ -14,32 +14,32 @@ GEYSER_SPIGOT_URL="https://download.geysermc.org/v2/projects/geyser/versions/lat
 FLOODGATE_SPIGOT_URL="https://download.geysermc.org/v2/projects/floodgate/versions/latest/builds/latest/downloads/spigot"
 
 # ── init ─────────────────────────────────────────────────────────────────────
-if [ "${MC_MODE:-server}" = "init" ]; then
+if [ "${MINECRAFT_MODE:-server}" = "init" ]; then
     mkdir -p "$PAPER_INSTALL_DIR"
 
     paper_curl() {
         curl -fsSL -H "User-Agent: $PAPER_USER_AGENT" "$@"
     }
 
-    MC_VERSION="${MC_VERSION:-latest}"
-    if [ "$MC_VERSION" = "latest" ]; then
+    MINECRAFT_VERSION="${MINECRAFT_VERSION:-latest}"
+    if [ "$MINECRAFT_VERSION" = "latest" ]; then
         echo "==> Resolving latest Minecraft version from PaperMC..."
-        MC_VERSION="$(paper_curl "$PAPER_API" | jq -r '[.versions | to_entries[0].value[] | select(test("-pre|-rc") | not)] | .[0]')"
-        [ -n "$MC_VERSION" ] && [ "$MC_VERSION" != "null" ] || { echo "ERROR: could not resolve latest Minecraft version." >&2; exit 1; }
+        MINECRAFT_VERSION="$(paper_curl "$PAPER_API" | jq -r '[.versions | to_entries[0].value[] | select(test("-pre|-rc") | not)] | .[0]')"
+        [ -n "$MINECRAFT_VERSION" ] && [ "$MINECRAFT_VERSION" != "null" ] || { echo "ERROR: could not resolve latest Minecraft version." >&2; exit 1; }
     fi
-    echo "==> Using Minecraft version $MC_VERSION"
+    echo "==> Using Minecraft version $MINECRAFT_VERSION"
 
-    echo "==> Resolving latest stable Paper build for $MC_VERSION..."
-    BUILD="$(paper_curl "$PAPER_API/versions/$MC_VERSION/builds" | jq -r 'map(select(.channel == "STABLE")) | .[0] | .id')"
+    echo "==> Resolving latest stable Paper build for $MINECRAFT_VERSION..."
+    BUILD="$(paper_curl "$PAPER_API/versions/$MINECRAFT_VERSION/builds" | jq -r 'map(select(.channel == "STABLE")) | .[0] | .id')"
 
     if [ -z "$BUILD" ] || [ "$BUILD" = "null" ]; then
-        echo "==> No stable build for $MC_VERSION, searching for latest version with a stable build..."
+        echo "==> No stable build for $MINECRAFT_VERSION, searching for latest version with a stable build..."
         VERSIONS="$(paper_curl "$PAPER_API" | jq -r '.versions | to_entries[] | .value[]' | sort -V -r)"
         for VERSION in $VERSIONS; do
             VERSION_BUILDS="$(paper_curl "$PAPER_API/versions/$VERSION/builds")"
             STABLE_ID="$(echo "$VERSION_BUILDS" | jq -r 'map(select(.channel == "STABLE")) | .[0] | .id')"
             if [ -n "$STABLE_ID" ] && [ "$STABLE_ID" != "null" ]; then
-                MC_VERSION="$VERSION"
+                MINECRAFT_VERSION="$VERSION"
                 BUILD="$STABLE_ID"
                 echo "==> Found stable build for version $VERSION (build $BUILD)"
                 break
@@ -48,11 +48,11 @@ if [ "${MC_MODE:-server}" = "init" ]; then
     fi
 
     [ -n "$BUILD" ] && [ "$BUILD" != "null" ] || { echo "ERROR: could not resolve a stable Paper build for any version." >&2; exit 1; }
-    echo "==> Using Minecraft $MC_VERSION, Paper build $BUILD"
+    echo "==> Using Minecraft $MINECRAFT_VERSION, Paper build $BUILD"
 
-    BUILDS_RESPONSE="$(paper_curl "$PAPER_API/versions/$MC_VERSION/builds")"
+    BUILDS_RESPONSE="$(paper_curl "$PAPER_API/versions/$MINECRAFT_VERSION/builds")"
     DOWNLOAD_URL="$(echo "$BUILDS_RESPONSE" | jq -r 'map(select(.channel == "STABLE")) | .[0] | .downloads."server:default".url')"
-    [ -n "$DOWNLOAD_URL" ] && [ "$DOWNLOAD_URL" != "null" ] || { echo "ERROR: could not resolve a download URL for $MC_VERSION build $BUILD." >&2; exit 1; }
+    [ -n "$DOWNLOAD_URL" ] && [ "$DOWNLOAD_URL" != "null" ] || { echo "ERROR: could not resolve a download URL for $MINECRAFT_VERSION build $BUILD." >&2; exit 1; }
 
     echo "==> Downloading $DOWNLOAD_URL..."
     curl -fsSL "$DOWNLOAD_URL" -o "$PAPER_INSTALL_DIR/paper.jar" || { echo "ERROR: download failed"; exit 1; }
@@ -62,7 +62,7 @@ if [ "${MC_MODE:-server}" = "init" ]; then
         exit 1
     fi
 
-    if [ "${MC_GEYSER:-false}" = "true" ]; then
+    if [ "${MINECRAFT_GEYSER:-false}" = "true" ]; then
         mkdir -p /serverdata/plugins
 
         echo "==> Downloading latest Geyser (Spigot) build..."
@@ -91,9 +91,9 @@ echo "==> Installation ready."
 
 mkdir -p /serverdata
 
-if [ "${MC_EULA:-false}" != "true" ]; then
+if [ "${MINECRAFT_EULA:-false}" != "true" ]; then
     echo "ERROR: You must accept the Minecraft EULA to run this server." >&2
-    echo "        Set MC_EULA=true (see https://aka.ms/MinecraftEULA) and restart." >&2
+    echo "        Set MINECRAFT_EULA=true (see https://aka.ms/MinecraftEULA) and restart." >&2
     exit 1
 fi
 echo "eula=true" > /serverdata/eula.txt
@@ -101,10 +101,10 @@ echo "eula=true" > /serverdata/eula.txt
 cp /opt/start-server.sh "$PAPER_INSTALL_DIR/start-server.sh"
 chmod +x "$PAPER_INSTALL_DIR/start-server.sh"
 
-STARTUP_LOG="/tmp/mc-startup.log"
-STARTUP_TIMEOUT="${MC_STARTUP_TIMEOUT:-180}"
+STARTUP_LOG="/tmp/minecraft-startup.log"
+STARTUP_TIMEOUT="${MINECRAFT_STARTUP_TIMEOUT:-180}"
 
-echo "==> Starting Minecraft (Paper) server on port ${MC_PORT:-25565} in tmux session '$TMUX_SESSION'..."
+echo "==> Starting Minecraft (Paper) server on port ${MINECRAFT_PORT:-25565} in tmux session '$TMUX_SESSION'..."
 > "$STARTUP_LOG"
 tmux new-session -d -s "$TMUX_SESSION" -c /serverdata "$PAPER_INSTALL_DIR/start-server.sh"
 tmux pipe-pane -t "$TMUX_SESSION" -o "cat >> $STARTUP_LOG"
@@ -124,7 +124,7 @@ tmux pipe-pane -t "$TMUX_SESSION" -o "cat >> $STARTUP_LOG"
     tmux kill-session -t "$TMUX_SESSION"
 ) &
 
-SHUTDOWN_TIMEOUT="${MC_SHUTDOWN_TIMEOUT:-30}"
+SHUTDOWN_TIMEOUT="${MINECRAFT_SHUTDOWN_TIMEOUT:-30}"
 
 shutdown_server() {
     echo "==> Shutdown requested, sending 'stop' to server console..."
