@@ -9,14 +9,27 @@ fi
 
 cd "$SCRIPT_DIR"
 
+SERVER_PID=""
+STOPPING=false
+
+handle_term() {
+    STOPPING=true
+    [ -n "$SERVER_PID" ] && kill -TERM "$SERVER_PID" 2>/dev/null
+}
+
+trap handle_term TERM
+
 while true; do
     dotnet VintagestoryServer.dll \
         --dataPath /serverdata \
-        ${VS_ARGS:-}
-
+        ${VS_ARGS:-} &
+    SERVER_PID=$!
+    wait $SERVER_PID
     rc=$?
-    if [ "$rc" -eq 0 ]; then
-        echo "==> Server exited cleanly (exit 0), not restarting."
+    SERVER_PID=""
+
+    if $STOPPING || [ "$rc" -eq 0 ]; then
+        echo "==> Server exited cleanly (exit $rc), not restarting."
         break
     fi
     echo "==> Server crashed (exit $rc), restarting in 5 seconds..."

@@ -101,36 +101,15 @@ echo "eula=true" > /serverdata/eula.txt
 cp /opt/start-server.sh "$PAPER_INSTALL_DIR/start-server.sh"
 chmod +x "$PAPER_INSTALL_DIR/start-server.sh"
 
-STARTUP_LOG="/tmp/minecraft-startup.log"
-STARTUP_TIMEOUT="${MINECRAFT_STARTUP_TIMEOUT:-180}"
-
 echo "==> Starting Minecraft (Paper) server on port ${MINECRAFT_PORT:-25565} in tmux session '$TMUX_SESSION'..."
-> "$STARTUP_LOG"
 tmux new-session -d -s "$TMUX_SESSION" -c /serverdata "$PAPER_INSTALL_DIR/start-server.sh"
-tmux pipe-pane -t "$TMUX_SESSION" -o "cat >> $STARTUP_LOG"
-
-(
-    ELAPSED=0
-    while [ "$ELAPSED" -lt "$STARTUP_TIMEOUT" ]; do
-        if grep -qiE 'Done \([0-9.]+s\)! For help' "$STARTUP_LOG" 2>/dev/null; then
-            echo "==> Watchdog: server started after ${ELAPSED}s."
-            tmux pipe-pane -t "$TMUX_SESSION" 2>/dev/null
-            exit 0
-        fi
-        sleep 10
-        ELAPSED=$((ELAPSED + 10))
-    done
-    echo "==> Watchdog: server did not report ready within ${STARTUP_TIMEOUT}s — killing session to trigger restart..."
-    tmux kill-session -t "$TMUX_SESSION"
-) &
 
 SHUTDOWN_TIMEOUT="${MINECRAFT_SHUTDOWN_TIMEOUT:-30}"
 
 shutdown_server() {
-    echo "==> Shutdown requested, sending 'stop' to server console..."
-    tmux send-keys -t "$TMUX_SESSION" "" Enter
-    sleep 1
-    tmux send-keys -t "$TMUX_SESSION" "stop" Enter
+    echo "==> Shutdown requested, sending SIGTERM to server process group..."
+    PANE_PID=$(tmux list-panes -t "$TMUX_SESSION" -F "#{pane_pid}" 2>/dev/null)
+    [ -n "$PANE_PID" ] && kill -TERM "-$PANE_PID" 2>/dev/null
     ELAPSED=0
     while tmux has-session -t "$TMUX_SESSION" 2>/dev/null && [ "$ELAPSED" -lt "$SHUTDOWN_TIMEOUT" ]; do
         sleep 2

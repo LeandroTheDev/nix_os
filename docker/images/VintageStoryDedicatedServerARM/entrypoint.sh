@@ -45,10 +45,9 @@ tmux new-session -d -s "$TMUX_SESSION" -c "$VS_INSTALL_DIR" "$VS_INSTALL_DIR/sta
 SHUTDOWN_TIMEOUT="${VS_SHUTDOWN_TIMEOUT:-30}"
 
 shutdown_server() {
-    echo "==> Shutdown requested, sending 'stop' to server console..."
-    tmux send-keys -t "$TMUX_SESSION" "" Enter
-    sleep 1
-    tmux send-keys -t "$TMUX_SESSION" "/stop" Enter
+    echo "==> Shutdown requested, sending SIGTERM to server process group..."
+    PANE_PID=$(tmux list-panes -t "$TMUX_SESSION" -F "#{pane_pid}" 2>/dev/null)
+    [ -n "$PANE_PID" ] && kill -TERM "-$PANE_PID" 2>/dev/null
     ELAPSED=0
     while tmux has-session -t "$TMUX_SESSION" 2>/dev/null && [ "$ELAPSED" -lt "$SHUTDOWN_TIMEOUT" ]; do
         sleep 2
