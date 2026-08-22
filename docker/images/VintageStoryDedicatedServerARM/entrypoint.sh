@@ -15,6 +15,7 @@ if [ "${VS_MODE:-server}" = "init" ]; then
     echo "==> Running vs_updater to install/update Vintage Story server..."
     vintagestory_updater \
         --working-path "$VS_INSTALL_DIR" \
+        --mods-path /serverdata/Mods \
         --game-type server \
         --arch arm64 \
         --no-pre || { echo "ERROR: updater failed"; exit 1; }
