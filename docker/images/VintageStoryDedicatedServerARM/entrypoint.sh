@@ -54,15 +54,18 @@ tmux new-session -d -s "$TMUX_SESSION" -c "$VS_INSTALL_DIR" "$VS_INSTALL_DIR/sta
 SHUTDOWN_TIMEOUT="${VS_SHUTDOWN_TIMEOUT:-30}"
 
 shutdown_server() {
-    echo "==> Shutdown requested, sending SIGTERM to server process group..."
-    PANE_PID=$(tmux list-panes -t "$TMUX_SESSION" -F "#{pane_pid}" 2>/dev/null)
-    [ -n "$PANE_PID" ] && kill -TERM "-$PANE_PID" 2>/dev/null
+    echo "==> Shutdown requested, sending SIGTERM to server..."
+    DOTNET_PID=$(pgrep -f VintagestoryServer.dll 2>/dev/null)
+    [ -n "$DOTNET_PID" ] && kill -TERM "$DOTNET_PID" 2>/dev/null
     ELAPSED=0
     while tmux has-session -t "$TMUX_SESSION" 2>/dev/null && [ "$ELAPSED" -lt "$SHUTDOWN_TIMEOUT" ]; do
         sleep 2
         ELAPSED=$((ELAPSED + 2))
     done
-    tmux kill-session -t "$TMUX_SESSION" 2>/dev/null
+    if tmux has-session -t "$TMUX_SESSION" 2>/dev/null; then
+        echo "==> Server did not stop within ${SHUTDOWN_TIMEOUT}s, force-killing..."
+        tmux kill-session -t "$TMUX_SESSION" 2>/dev/null
+    fi
     exit 0
 }
 

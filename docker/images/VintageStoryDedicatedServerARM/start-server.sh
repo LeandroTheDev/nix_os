@@ -26,6 +26,10 @@ while true; do
     SERVER_PID=$!
     wait $SERVER_PID
     rc=$?
+    # If signaled, dotnet may still be saving — wait for it to fully exit
+    if $STOPPING && kill -0 "$SERVER_PID" 2>/dev/null; then
+        wait "$SERVER_PID" 2>/dev/null
+    fi
     SERVER_PID=""
 
     if $STOPPING || [ "$rc" -eq 0 ]; then
