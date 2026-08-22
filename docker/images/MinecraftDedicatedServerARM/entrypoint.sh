@@ -7,7 +7,7 @@ set -uo pipefail
 APP_PATH="${APP_PATH:-/home/admin/app}"
 PAPER_INSTALL_DIR="$APP_PATH/paper"
 READY_MARKER="$PAPER_INSTALL_DIR/.ready"
-TMUX_SESSION="mc"
+TMUX_SESSION="minecraft"
 PAPER_API="https://fill.papermc.io/v3/projects/paper"
 PAPER_USER_AGENT="nix_os-minecraft-dedicated-server-arm/1.0"
 GEYSER_SPIGOT_URL="https://download.geysermc.org/v2/projects/geyser/versions/latest/builds/latest/downloads/spigot"
@@ -142,7 +142,7 @@ shutdown_server() {
 
 trap shutdown_server SIGTERM SIGINT
 
-# Attach to server console: docker exec -it minecraft tmux attach -t mc
+# Attach to server console: docker exec -it minecraft tmux attach -t minecraft
 while tmux has-session -t "$TMUX_SESSION" 2>/dev/null; do
     sleep 5 & wait $!
 done

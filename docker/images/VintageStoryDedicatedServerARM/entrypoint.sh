@@ -6,7 +6,7 @@ set -uo pipefail
 APP_PATH="${APP_PATH:-/home/admin/app}"
 VS_INSTALL_DIR="$APP_PATH/vs"
 READY_MARKER="$VS_INSTALL_DIR/.ready"
-TMUX_SESSION="vs"
+TMUX_SESSION="vintagestory"
 
 # ── init ─────────────────────────────────────────────────────────────────────
 if [ "${VS_MODE:-server}" = "init" ]; then
@@ -17,8 +17,7 @@ if [ "${VS_MODE:-server}" = "init" ]; then
         --working-path "$VS_INSTALL_DIR" \
         --game-type server \
         --arch arm64 \
-        --no-pre \
-        --ignore-mod-update || { echo "ERROR: updater failed"; exit 1; }
+        --no-pre || { echo "ERROR: updater failed"; exit 1; }
 
     if [ ! -f "$VS_INSTALL_DIR/VintagestoryServer.dll" ]; then
         echo "ERROR: VintagestoryServer.dll not found after update." >&2
@@ -61,7 +60,7 @@ shutdown_server() {
 
 trap shutdown_server SIGTERM SIGINT
 
-# Attach to server console: docker exec -it vs-server tmux attach -t vs
+# Attach to server console: docker exec -it vs-server tmux attach -t vintagestory
 while tmux has-session -t "$TMUX_SESSION" 2>/dev/null; do
     sleep 5 & wait $!
 done
