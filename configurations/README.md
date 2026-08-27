@@ -1,5 +1,9 @@
-# Clean garbage on store
+# Commands
+## Clean garbage on store
 - nix-collect-garbage -d
+
+## Repair packages
+- nix-store --verify --check-contents --repair
 
 # Usefull packages for 'packages.nix'
 ## Compilations
